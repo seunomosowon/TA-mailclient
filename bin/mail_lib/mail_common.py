@@ -70,9 +70,9 @@ def process_raw_email(raw):
         for part in message.walk():
             content_type = part.get_content_type()
             if 'text/plain' == content_type or 'text/html' == content_type:
-                body += '\n' + part.get_payload()
+                body += '\n' + part.get_payload(decode=True)
     else:
-        body = message.get_payload()
+        body = message.get_payload(decode=True)
     mail_for_index = "Date: %s\n" \
                      "Message-ID: %s\n" \
                      "From: %s\n" \
