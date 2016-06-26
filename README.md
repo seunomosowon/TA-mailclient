@@ -81,7 +81,7 @@ or the input will get disabled.
   Setting this to ```readonly``` prevents mails from being deleted.
 
   The default is ```readonly```. Supported options are:
-```[delayed|delete|readonly]```
+```delayed|delete|readonly```
 
 **interval** - This should be configured to run as frequent as required
 to retreive emails. This modular input retrieves up to 20 emails at each run.
