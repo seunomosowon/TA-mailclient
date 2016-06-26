@@ -3,6 +3,7 @@ This includes common functions that are required when dealing with mails
 """
 import socket
 from exceptions import *
+from constants import *
 import email
 import os
 import hashlib
@@ -18,7 +19,7 @@ def get_mail_port(protocol, is_secure):
     :return: Returns the correct port for either POP3 or POP3 over SSL
     :rtype: int
     """
-    port=0
+    port = 0
     if is_secure is True:
         if protocol == 'POP3':
             port = 995
@@ -56,21 +57,32 @@ def mail_connectivity_test(server, protocol, is_secure):
     except socket.error, e:
         raise socket.error("Socket error : %s" % e)
 
-
 def process_raw_email(raw):
     """
     This fundtion takes an email in plain text form and preformats it with limited headers.
     :param raw: This represents the email in a bytearray to be processed
-    :return: Returns a list with the [[date,mail_message],]
+    :return: Returns a list with the [[date, Message-id, mail_message],...]
       :rtype: list
     """
     message = email.message_from_string(raw)
+    print 'started processing'
     body = ''
     if message.is_multipart():
         for part in message.walk():
             content_type = part.get_content_type()
-            if 'text/plain' == content_type or 'text/html' == content_type:
-                body += '\n' + part.get_payload(decode=True)
+            content_disposition = part.get('Content-Disposition')
+            #body += "Content Disposition: %s\nContent Type: %s \n" % (repr(content_disposition) ,content_type)
+            if content_type in SUPPORTED_CONTENT_TYPES or part.get_content_maintype() == 'text':
+                if content_disposition is not None and content_disposition !='':
+                    if "attachment" in content_disposition:
+                        """Easier to change to a flag in inputs.conf"""
+                        body += "\n#BEGIN_ATTACHMENT: %s\n" % part.get_filename()
+                        body += "\n%s" % part.get_payload(decode=True)
+                        body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
+                    else:
+                        body += "\n%s" % part.get_payload(decode=True)
+                else:
+                    body += "\n%s" % part.get_payload(decode=True)
     else:
         body = message.get_payload(decode=True)
     mail_for_index = "Date: %s\n" \
@@ -80,40 +92,33 @@ def process_raw_email(raw):
                      "To: %s\n" \
                      "Body: %s\n" % (message['Date'], message['Message-ID'],
                                      message['From'], message['Subject'], message['To'], body)
-    return [message['Date'], mail_for_index]
+    return [message['Date'], message['Message-ID'], mail_for_index]
 
-
-def save_checkpoint(inputs, msg):
+def save_checkpoint(checkpoint_dir, msg):
     """
     This creates a checkpoint file in the checkpoint directory for the message.
-    :param inputs: contains the input definition which includes the path to its checkpoint directory
-     :type inputs: splunklib.modularinput.Inputdefinition
+    :param checkpoint_dir: This contains the path where checkpoint files will be saved
+    :type checkpoint_dir: basestring
     :param msg: Contains a message that needs to indexed and
      :type msg: basestring
     """
-    h = hashlib.new('sha256')
-    h.update(msg[0:300])
-    checkpoint_dir = inputs.metadata['checkpoint_dir']
-    filename = os.path.join(checkpoint_dir, h.hexdigest())
+    filename = os.path.join(checkpoint_dir, hashlib.sha256(str(msg)).hexdigest())
     f = open(filename, 'w')
     f.close()
 
 
-def locate_checkpoint(inputs, msg):
+def locate_checkpoint(checkpoint_dir, msg):
     """
     This checks if a message has already been indexed by using a digest of the first 300 characters,
     which includes a date, message id, source and destination email addresses.
-    :param inputs: contains the input definition which includes the path to its checkpoint directory
-     :type inputs: InputDefinition
+    :param checkpoint_dir: This contains the path where checkpoint files will be saved
+    :type checkpoint_dir: basestring
     :param msg: Contains a message that needs to indexed and
      :type msg: basestring
     :return: Returns true if the message has been indexed previously, and false if not.
      :rtype: bool
     """
-    h = hashlib.new('sha256')
-    h.update(msg[0:300])
-    checkpoint_dir = inputs.metadata['checkpoint_dir']
-    filename = os.path.join(checkpoint_dir, h.hexdigest())
+    filename = os.path.join(checkpoint_dir, hashlib.sha256(str(msg)).hexdigest())
     try:
         open(filename, 'r').close()
     except (OSError, IOError):

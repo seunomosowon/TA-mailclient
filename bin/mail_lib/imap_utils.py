@@ -4,7 +4,7 @@ from constants import *
 from exceptions import *
 
 
-def stream_imap_emails(server, is_secure, credential):
+def stream_imap_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_dir):
     """
     This fetches a maximum of MAX_FETCH_COUNT mails using imap form a mail server
     :param server: mail server hostname or IP address
@@ -13,6 +13,10 @@ def stream_imap_emails(server, is_secure, credential):
     :type is_secure: bool
     :param credential: Pass a StoragePassword object to be used to access the server
     :type credential: StoragePassword
+    :param mailbox_mgmt: This dictates if mail deletion should be deferred, enforced as mails are indexed or avoided
+    :type mailbox_mgmt: basestring
+    :param checkpoint_dir: This is the path to be checked for existing checkpoint files
+    :type checkpoint_dir: basestring
     :return: This returns a list of the messages retrieved via IMAP
     :rtype: list
     """
@@ -27,23 +31,38 @@ def stream_imap_emails(server, is_secure, credential):
     except imaplib.IMAP4.error:
         raise MailExceptionIMAPLogin(server, credential.username)
     result, folders = mailclient.list()
-    """Might want to iterate over all the child folders of inbox in future version
-    And Extend the choise of having this readonly, so mails are saved in mailbox"""
-    mailclient.select('inbox', readonly=False)
+    if mailbox_mgmt == 'delete' or mailbox_mgmt == 'delayed':
+        imap_readonly_flag = False
+    else:
+        imap_readonly_flag = IMAP_READONLY_FLAG
+    """
+    Might want to iterate over all the child folders of inbox in future version
+    And Extend the choise of having this readonly, so mails are saved in mailbox.
+    Need to move all this into a controller object that can work on email.Message.Message
+    """
+    mailclient.select('inbox', readonly=imap_readonly_flag)
     status, data = mailclient.uid('search', None, 'ALL')
     if status == 'OK':
         email_ids = data[0].split()
         num_of_messages = len(email_ids)
         if num_of_messages > 0:
-            if num_of_messages > MAX_FETCH_COUNT:
-                fetch_count = MAX_FETCH_COUNT
-            else:
-                fetch_count = num_of_messages
-            for num in range(fetch_count):
+            num = 0
+            mails_retrieved = 0
+            while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
                 result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
                 raw_email = email_data[0][1]
-                fetched_mail.append(process_raw_email(raw_email))
-                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                formatted_email = process_raw_email(raw_email)
+                email_id = formatted_email[1]
+                if locate_checkpoint(checkpoint_dir, email_id) and (
+                        mailbox_mgmt == 'delayed' or mailbox_mgmt == 'delete'):
+                    mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                    # if not locate_checkpoint(...): then message deletion has been delayed until next run
+                else:
+                    fetched_mail.append(formatted_email)
+                    mails_retrieved += 1
+                if mailbox_mgmt == 'delete':
+                    mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                num += 1
             mailclient.expunge()
             mailclient.close()
             mailclient.logout()

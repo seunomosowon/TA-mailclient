@@ -4,11 +4,10 @@
 import re
 import sys
 import time
-
+import traceback
 from splunklib.modularinput import *
 from mail_lib.imap_utils import *
 from mail_lib.pop_utils import *
-from mail_lib.constants import *
 from mail_lib.mail_common import *
 from mail_lib.exceptions import *
 
@@ -30,7 +29,8 @@ class Mail(Script):
         scheme.use_external_validation = True
         name = Argument(
             name="name",
-            description="Email Address",
+            title="E-mail",
+            description="Enter E-mail Address",
             validation="match('name','%s')" % REGEX_EMAIL,
             data_type=Argument.data_type_string,
             required_on_edit=True,
@@ -39,6 +39,7 @@ class Mail(Script):
         scheme.add_argument(name)
         protocol = Argument(
             name="protocol",
+            title="Protocol",
             description="Collection Protocol (POP3/IMAP)",
             validation="match('protocol','^(POP3|IMAP)$')",
             data_type=Argument.data_type_string,
@@ -47,32 +48,46 @@ class Mail(Script):
         )
         scheme.add_argument(protocol)
         mailserver = Argument(
-                        name="mailserver",
-                        description="POP3 Mail Server",
-                        validation="match('mailserver','%s')" % REGEX_HOSTNAME,
-                        data_type=Argument.data_type_string,
-                        required_on_edit=True,
-                        required_on_create=True
-                        )
+            name="mailserver",
+            title="Server",
+            description="Mail Server",
+            validation="match('mailserver','%s')" % REGEX_HOSTNAME,
+            data_type=Argument.data_type_string,
+            required_on_edit=True,
+            required_on_create=True
+        )
         scheme.add_argument(mailserver)
         is_secure = Argument(
-                        name="is_secure",
-                        description="Enable Protocol over SSL",
-                        validation="is_bool('is_secure')",
-                        data_type=Argument.data_type_boolean,
-                        required_on_edit=True,
-                        required_on_create=True
-                        )
+            name="is_secure",
+            title="UseSSL",
+            description="Enable Protocol over SSL",
+            validation="is_bool('is_secure')",
+            data_type=Argument.data_type_boolean,
+            required_on_edit=True,
+            required_on_create=True
+        )
+        # bool arguments dont display description
         scheme.add_argument(is_secure)
         password = Argument(
             name="password",
-            description="Password",
+            title="Account Password",
+            description="Enter Password for mail account",
             validation="match('password','%s')" % REGEX_PASSWORD,
             data_type=Argument.data_type_string,
             required_on_edit=True,
             required_on_create=True
         )
         scheme.add_argument(password)
+        mailbox_cleanup = Argument(
+            name="mailbox_cleanup",
+            title="Maibox Management",
+            description="(delete|delayed|readonly)",
+            validation="match('mailbox_cleanup','^(delete|delayed|readonly)$')",
+            data_type=Argument.data_type_string,
+            required_on_edit=False,
+            required_on_create=False
+        )
+        scheme.add_argument(mailbox_cleanup)
         return scheme
 
     def validate_input(self, validation_definition):
@@ -101,7 +116,8 @@ class Mail(Script):
         """
         tmp_input = self.service.inputs[input_name]
         kwargs = {'host': tmp_input.mailserver, 'password': PASSWORD_PLACEHOLDER,
-                  'mailserver': tmp_input.mailserver, 'is_secure': tmp_input.is_secure, 'protocol': tmp_input.protocol}
+                  'mailserver': tmp_input.mailserver, 'is_secure': tmp_input.is_secure,
+                  'protocol': tmp_input.protocol, 'mailbox_cleanup': tmp_input.mailbox_cleanup}
         tmp_input.update(**kwargs).refresh()
 
     def disable_input(self, input_name):
@@ -208,36 +224,53 @@ class Mail(Script):
         """
         for input_list in inputs.inputs.iteritems():
             """This runs just once since the default self.use_single_instance = False"""
-            input_name, input_item = input_list
-            mailserver = input_item["mailserver"]
-            email = input_name.split("://")[1]
-            is_secure = bool(input_item["is_secure"])
-            protocol = input_item['protocol']
-            sp = self.save_password(username=email, input_list=input_list, ew=ew)
-
-            if "POP3" == protocol:
-                mail_list = stream_pop_emails(server=mailserver, is_secure=is_secure, credential=sp)
-            elif "IMAP" == protocol:
-                mail_list = stream_imap_emails(server=mailserver, is_secure=is_secure, credential=sp)
-
-            else:
-                ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
-                self.disable_input(email)
-                raise MailExceptionInvalidProtocol
-            """Consider adding a checkpoint file here using the first n-characters including the date"""
-            for message_time, msg in mail_list:
-                if not locate_checkpoint(inputs, msg):
-                    event = Event()
-                    event.stanza = input_name
-                    event.data = msg
-                    event.time = "%.3f" % float(time.mktime(time.strptime(message_time[:(len(message_time)-6)],
-                                                                          '%a, %d %b %Y %H:%M:%S')))
-                    event.host = mailserver
-                    ew.write_event(event)
-                    save_checkpoint(inputs, msg)
+            try:
+                input_name, input_item = input_list
+                mailserver = input_item["mailserver"]
+                email = input_name.split("://")[1]
+                checkpoint_dir = inputs.metadata['checkpoint_dir']
+                is_secure = bool(input_item["is_secure"])
+                protocol = input_item['protocol']
+                mailbox_cleanup = input_item['mailbox_cleanup']
+                if mailbox_cleanup is None or mailbox_cleanup == '':
+                    mailbox_cleanup = MAILBOX_CLEANUP_DEFAULTS
+                sp = self.save_password(username=email, input_list=input_list, ew=ew)
+                if "POP3" == protocol:
+                    mail_list = stream_pop_emails(
+                        server=mailserver, is_secure=is_secure, credential=sp, mailbox_mgmt=mailbox_cleanup,
+                        checkpoint_dir=checkpoint_dir)
+                elif "IMAP" == protocol:
+                    mail_list = stream_imap_emails(
+                        server=mailserver, is_secure=is_secure, credential=sp, mailbox_mgmt=mailbox_cleanup,
+                        checkpoint_dir=checkpoint_dir)
                 else:
-                    ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
-
+                    ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
+                    self.disable_input(email)
+                    raise MailExceptionInvalidProtocol
+                """Consider adding a checkpoint file here using the first n-characters including the date"""
+                for message_time, checkpoint_id, msg in mail_list:
+                    if not locate_checkpoint(checkpoint_dir, checkpoint_id):
+                        event = Event(
+                            stanza=input_name,
+                            data=msg,
+                            host=mailserver,
+                            source=input_name,
+                            time="%.3f" % float(
+                                time.mktime(time.strptime(
+                                    message_time[:(len(message_time) - 6)], '%a, %d %b %Y %H:%M:%S')
+                                )
+                            )
+                        )
+                        ew.write_event(event)
+                        save_checkpoint(checkpoint_dir, checkpoint_id)
+                    else:
+                        ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
+            except:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
+                ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)
+                ew.log(EventWriter.DEBUG,
+                       traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout))
 
 if __name__ == "__main__":
     sys.exit(Mail().run(sys.argv))

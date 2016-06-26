@@ -15,7 +15,7 @@ from constants import *
 from exceptions import *
 
 
-def stream_pop_emails(server, is_secure, credential):
+def stream_pop_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_dir):
     """
     :param server: mail server hostname or IP address
     :type server: basestring
@@ -23,6 +23,10 @@ def stream_pop_emails(server, is_secure, credential):
     :type is_secure: bool
     :param credential: Pass a StoragePassword object to be used to access the server
     :type credential: StoragePassword
+    :param mailbox_mgmt: This dictates if mail deletion should be deferred, enforced as mails are indexed or avoided
+    :type mailbox_mgmt: basestring
+    :param checkpoint_dir: This is the path to be checked for existing checkpoint files
+    :type checkpoint_dir: basestring
     :return: This returns a list of the messages retrieved via POP3
     :rtype: list
     """
@@ -35,25 +39,29 @@ def stream_pop_emails(server, is_secure, credential):
             mailclient = poplib.POP3(host=server, port=get_mail_port(protocol=protocol, is_secure=is_secure))
         mailclient.user(credential.username)
         mailclient.pass_(credential.clear_password)
-        (num_of_msgs, totalsize) = mailclient.stat()
-        if num_of_msgs > 0:
-            if num_of_msgs > MAX_FETCH_COUNT:
-                fetch_count = MAX_FETCH_COUNT
-            else:
-                fetch_count = num_of_msgs
-
-            for i in range(1, fetch_count + 1):
-                (header, msg, octets) = mailclient.retr(i)
+        (num_of_messages, totalsize) = mailclient.stat()
+        if num_of_messages > 0:
+            num = 0
+            mails_retrieved = 0
+            while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
+                num += 1
+                (header, msg, octets) = mailclient.retr(num)
                 # fetched_mail.append(header + '\n'.join(msg))
-                raw_mail = '\n'.join(msg)
-                fetched_mail.append(process_raw_email(raw_mail))
-                mailclient.dele(i)
-
+                raw_email = '\n'.join(msg)
+                formatted_email = process_raw_email(raw_email)
+                email_id = formatted_email[1]
+                if locate_checkpoint(checkpoint_dir, email_id) and (
+                        mailbox_mgmt == 'delayed' or mailbox_mgmt == 'delete'):
+                    mailclient.dele(num)
+                else:
+                    """Append the mail if it is readonly or if the mail will be deleted"""
+                    fetched_mail.append(formatted_email)
+                    mails_retrieved += 1
+                if mailbox_mgmt == 'delete':
+                    mailclient.dele(num)
             mailclient.quit()
-
     except poplib.error_proto, e:
         raise MailPoplibError(e)
-
     return fetched_mail
 
 
