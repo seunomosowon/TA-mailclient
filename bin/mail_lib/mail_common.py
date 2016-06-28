@@ -4,6 +4,7 @@ This includes common functions that are required when dealing with mails
 import socket
 from exceptions import *
 from constants import *
+from email.header import decode_header
 import email
 import os
 import hashlib
@@ -57,6 +58,14 @@ def mail_connectivity_test(server, protocol, is_secure):
     except socket.error, e:
         raise socket.error("Socket error : %s" % e)
 
+
+def getheader(header_text, default="ascii"):
+    """ This decodes sections of the email header which could be represented in utf8 or other iso languages"""
+    headers = decode_header(header_text)
+    header_sections = [unicode(text, charset or default) for text, charset in headers]
+    return u"".join(header_sections)
+
+
 def process_raw_email(raw):
     """
     This fundtion takes an email in plain text form and preformats it with limited headers.
@@ -71,18 +80,38 @@ def process_raw_email(raw):
         for part in message.walk():
             content_type = part.get_content_type()
             content_disposition = part.get('Content-Disposition')
-            #body += "Content Disposition: %s\nContent Type: %s \n" % (repr(content_disposition) ,content_type)
+            """
+            body += "Content Disposition: %s\nContent Type: %s \n" % (repr(content_disposition) ,content_type)
+            Microsoft sometimes sends the wrong content type. : sending csv as application/octect-stream
+
+            """
+            index_attachments_flag = INDEX_ATTACHMENT_DEFAULT
+            extension = os.path.splitext(part.get_filename())[1]
+            if extension in SUPPORTED_FILE_EXTENSIONS:
+                file_is_supported_attachment = True
+            else:
+                file_is_supported_attachment = False
             if content_type in SUPPORTED_CONTENT_TYPES or part.get_content_maintype() == 'text':
-                if content_disposition is not None and content_disposition !='':
-                    if "attachment" in content_disposition:
+                content_type_supported = True
+            else:
+                content_type_supported = False
+
+            if content_type_supported or file_is_supported_attachment:
+                if content_disposition is not None and content_disposition != '':
+                    if "attachment" in content_disposition and index_attachments_flag:
                         """Easier to change to a flag in inputs.conf"""
                         body += "\n#BEGIN_ATTACHMENT: %s\n" % part.get_filename()
                         body += "\n%s" % part.get_payload(decode=True)
                         body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
                     else:
                         body += "\n%s" % part.get_payload(decode=True)
-                else:
+                elif "attachment" not in content_disposition:
                     body += "\n%s" % part.get_payload(decode=True)
+            """
+            else:
+                body += "Found unsupported message part: %s, Filename: %s" % (content_type,part.get_filename())
+            # what if we want to index images for steganalysis? - add an option for user to specify file extensions
+            """
     else:
         body = message.get_payload(decode=True)
     mail_for_index = "Date: %s\n" \
@@ -91,8 +120,9 @@ def process_raw_email(raw):
                      "Subject: %s\n" \
                      "To: %s\n" \
                      "Body: %s\n" % (message['Date'], message['Message-ID'],
-                                     message['From'], message['Subject'], message['To'], body)
+                                     message['From'], getheader(message['Subject']), message['To'], body)
     return [message['Date'], message['Message-ID'], mail_for_index]
+
 
 def save_checkpoint(checkpoint_dir, msg):
     """

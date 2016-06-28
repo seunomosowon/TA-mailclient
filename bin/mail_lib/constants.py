@@ -1,6 +1,6 @@
 # DEFAULTS
 IMAP_READONLY_FLAG = True
-INDEX_ATTACHMENTS_DEFAULT = False
+INDEX_ATTACHMENT_DEFAULT = True
 MAX_FETCH_COUNT = 25
 REALM = 'mail'
 PASSWORD_PLACEHOLDER = 'encrypted'
@@ -17,5 +17,6 @@ No need to add this to the supported types list
 SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/x-sh', 'application/x-csh',
                            'application/javascript', 'application/bat', 'application/x-bat',
                            'application/x-msdos-program', 'application/textedit'}
+SUPPORTED_FILE_EXTENSIONS = {'.csv','.txt','.md','.py','.bat','.sh','.rb','.js'}
 MAILBOX_CLEANUP_DEFAULTS = 'readonly'
 
