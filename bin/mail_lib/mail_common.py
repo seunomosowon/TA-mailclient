@@ -86,7 +86,7 @@ def process_raw_email(raw):
 
             """
             index_attachments_flag = INDEX_ATTACHMENT_DEFAULT
-            extension = os.path.splitext(part.get_filename())[1]
+            extension = os.path.splitext(part.get_filename() or '')[1]
             if extension in SUPPORTED_FILE_EXTENSIONS:
                 file_is_supported_attachment = True
             else:
@@ -105,7 +105,7 @@ def process_raw_email(raw):
                         body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
                     else:
                         body += "\n%s" % part.get_payload(decode=True)
-                elif "attachment" not in content_disposition:
+                else:
                     body += "\n%s" % part.get_payload(decode=True)
             """
             else:
