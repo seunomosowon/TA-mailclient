@@ -88,6 +88,8 @@ to retreive emails. This modular input retrieves up to 20 emails at each run.
 This modular input supports multiple instances, so each input runs at seperate intervals.
 A future update to this input might allow the limit to be configured as part of this input.
 
+**include_headers** -  This determines if email headers should be included.
+
 
 ### Support
 Support will be provided via Splunkbase :)

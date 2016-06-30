@@ -4,7 +4,7 @@ from constants import *
 from exceptions import *
 
 
-def stream_imap_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_dir):
+def stream_imap_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_dir, include_headers):
     """
     This fetches a maximum of MAX_FETCH_COUNT mails using imap form a mail server
     :param server: mail server hostname or IP address
@@ -17,6 +17,8 @@ def stream_imap_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_d
     :type mailbox_mgmt: basestring
     :param checkpoint_dir: This is the path to be checked for existing checkpoint files
     :type checkpoint_dir: basestring
+    :param include_headers: This parameter specifies if all headers should be included.
+    :type include_headers: bool
     :return: This returns a list of the messages retrieved via IMAP
     :rtype: list
     """
@@ -51,7 +53,7 @@ def stream_imap_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_d
             while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
                 result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
                 raw_email = email_data[0][1]
-                formatted_email = process_raw_email(raw_email)
+                formatted_email = process_raw_email(raw_email,include_headers)
                 email_id = formatted_email[1]
                 if locate_checkpoint(checkpoint_dir, email_id) and (
                         mailbox_mgmt == 'delayed' or mailbox_mgmt == 'delete'):

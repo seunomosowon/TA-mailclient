@@ -50,7 +50,7 @@ class Mail(Script):
         mailserver = Argument(
             name="mailserver",
             title="Server",
-            description="Mail Server",
+            description="Mail Server (hostname or IP)",
             validation="match('mailserver','%s')" % REGEX_HOSTNAME,
             data_type=Argument.data_type_string,
             required_on_edit=True,
@@ -88,6 +88,15 @@ class Mail(Script):
             required_on_create=False
         )
         scheme.add_argument(mailbox_cleanup)
+        include_headers = Argument(
+            name="include_headers",
+            title="Include headers",
+            validation="is_bool('include_headers')",
+            data_type=Argument.data_type_boolean,
+            required_on_edit=False,
+            required_on_create=False
+        )
+        scheme.add_argument(include_headers)
         return scheme
 
     def validate_input(self, validation_definition):
@@ -232,17 +241,18 @@ class Mail(Script):
                 is_secure = bool(input_item["is_secure"])
                 protocol = input_item['protocol']
                 mailbox_cleanup = input_item['mailbox_cleanup']
+                include_headers = bool(input_item['include_headers'])
                 if mailbox_cleanup is None or mailbox_cleanup == '':
                     mailbox_cleanup = MAILBOX_CLEANUP_DEFAULTS
                 sp = self.save_password(username=email, input_list=input_list, ew=ew)
                 if "POP3" == protocol:
                     mail_list = stream_pop_emails(
                         server=mailserver, is_secure=is_secure, credential=sp, mailbox_mgmt=mailbox_cleanup,
-                        checkpoint_dir=checkpoint_dir)
+                        checkpoint_dir=checkpoint_dir, include_headers=include_headers)
                 elif "IMAP" == protocol:
                     mail_list = stream_imap_emails(
                         server=mailserver, is_secure=is_secure, credential=sp, mailbox_mgmt=mailbox_cleanup,
-                        checkpoint_dir=checkpoint_dir)
+                        checkpoint_dir=checkpoint_dir, include_headers=include_headers)
                 else:
                     ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
                     self.disable_input(email)

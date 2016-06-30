@@ -66,16 +66,22 @@ def getheader(header_text, default="ascii"):
     return u"".join(header_sections)
 
 
-def process_raw_email(raw):
+def process_raw_email(raw, include_headers):
     """
     This fundtion takes an email in plain text form and preformats it with limited headers.
     :param raw: This represents the email in a bytearray to be processed
+    :type raw: basestring
+    :param include_headers: This parameter specifies if all headers should be included.
+    :type include_headers: bool
     :return: Returns a list with the [[date, Message-id, mail_message],...]
       :rtype: list
     """
     message = email.message_from_string(raw)
     print 'started processing'
     body = ''
+    other_headers = '\n'.join(["%s: %s" % (k, v) for k, v in message.items() if k not in ('From', 'To', 'Subject')])
+    if include_headers:
+        body += other_headers
     if message.is_multipart():
         for part in message.walk():
             content_type = part.get_content_type()
