@@ -16,7 +16,8 @@ No need to add this to the supported types list
 """
 SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/x-sh', 'application/x-csh',
                            'application/javascript', 'application/bat', 'application/x-bat',
-                           'application/x-msdos-program', 'application/textedit'}
-SUPPORTED_FILE_EXTENSIONS = {'.csv','.txt','.md','.py','.bat','.sh','.rb','.js'}
+                           'application/x-msdos-program', 'application/textedit',
+                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
+SUPPORTED_FILE_EXTENSIONS = {'.csv','.txt','.md','.py','.bat','.sh','.rb','.js','.docx'}
 MAILBOX_CLEANUP_DEFAULTS = 'readonly'
 

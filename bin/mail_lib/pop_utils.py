@@ -10,12 +10,12 @@ Here are some of the keys included in a sample mail from gmail to gmx:
 """
 
 import poplib
+
 from mail_common import *
-from constants import *
-from exceptions import *
 
 
-def stream_pop_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_dir, include_headers):
+def stream_pop_emails(server, is_secure, credential, checkpoint_dir,
+                      mailbox_mgmt=MAILBOX_CLEANUP_DEFAULTS, include_headers=INDEX_ATTACHMENT_DEFAULT):
     """
     :param server: mail server hostname or IP address
     :type server: basestring
@@ -41,6 +41,7 @@ def stream_pop_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_di
             mailclient = poplib.POP3(host=server, port=get_mail_port(protocol=protocol, is_secure=is_secure))
         mailclient.user(credential.username)
         mailclient.pass_(credential.clear_password)
+        # raise MailPoplibError('Authentication failure')
         (num_of_messages, totalsize) = mailclient.stat()
         if num_of_messages > 0:
             num = 0
@@ -50,21 +51,19 @@ def stream_pop_emails(server, is_secure, credential, mailbox_mgmt, checkpoint_di
                 (header, msg, octets) = mailclient.retr(num)
                 # fetched_mail.append(header + '\n'.join(msg))
                 raw_email = '\n'.join(msg)
-                formatted_email = process_raw_email(raw_email,include_headers)
+                formatted_email = process_raw_email(raw_email, include_headers)
                 email_id = formatted_email[1]
-                if locate_checkpoint(checkpoint_dir, email_id) and (
-                        mailbox_mgmt == 'delayed' or mailbox_mgmt == 'delete'):
-                    mailclient.dele(num)
-                else:
+                if not locate_checkpoint(checkpoint_dir, email_id):
                     """Append the mail if it is readonly or if the mail will be deleted"""
                     fetched_mail.append(formatted_email)
                     mails_retrieved += 1
-                if mailbox_mgmt == 'delete':
+                    if mailbox_mgmt == 'delete':
+                        mailclient.dele(num)
+                elif locate_checkpoint(checkpoint_dir, email_id) and (
+                        mailbox_mgmt == 'delayed' or mailbox_mgmt == 'delete'):
                     mailclient.dele(num)
             mailclient.quit()
     except poplib.error_proto, e:
+        """raise pop error here if any of the above pop commands/syntax is bad"""
         raise MailPoplibError(e)
     return fetched_mail
-
-
-

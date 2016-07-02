@@ -1,13 +1,21 @@
 """
 This includes common functions that are required when dealing with mails
 """
-import socket
-from exceptions import *
-from constants import *
-from email.header import decode_header
 import email
-import os
 import hashlib
+import os
+import socket
+import zipfile
+from email.header import decode_header
+from xml.dom.minidom import parse as parsexml
+
+from constants import *
+from exceptions import *
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 
 def get_mail_port(protocol, is_secure):
@@ -66,6 +74,36 @@ def getheader(header_text, default="ascii"):
     return u"".join(header_sections)
 
 
+def read_docx(decoded_payload):
+    """
+    This reads a docx file form a string and outputs just the text from the document
+    along with the document's internal structure
+    :param decoded_payload: This is a the payload from an email that contains a docx file
+    :return: This returns the texts from the word document.
+    :rtype: basestring
+    """
+    # decoded_payload = open('a.docx', 'r').read()
+    fp = StringIO(decoded_payload)
+    zfp = zipfile.ZipFile(fp)
+    if zfp:
+        y = parsexml(zfp.open('[Content_Types].xml', 'rU')).documentElement.toprettyxml()
+        """
+        I can check for Macros here
+        if zfp.getinfo('word/vbaData.xml'):
+        openXML standard supports any name for xml file. Need to check all files.
+        Add the contents pages to the top of word file for visual inspection of macros
+        """
+        if zfp.getinfo('word/document.xml'):
+            doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
+            y += u''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')])
+
+        else:
+            y = u'Not yet supported docx file'
+    else:
+        y = u'Email attachment did not match Word / OpenXML document format'
+    return y
+
+
 def process_raw_email(raw, include_headers):
     """
     This fundtion takes an email in plain text form and preformats it with limited headers.
@@ -101,13 +139,15 @@ def process_raw_email(raw, include_headers):
                 content_type_supported = True
             else:
                 content_type_supported = False
-
             if content_type_supported or file_is_supported_attachment:
                 if content_disposition is not None and content_disposition != '':
                     if "attachment" in content_disposition and index_attachments_flag:
                         """Easier to change to a flag in inputs.conf"""
                         body += "\n#BEGIN_ATTACHMENT: %s\n" % part.get_filename()
-                        body += "\n%s" % part.get_payload(decode=True)
+                        if extension == '.docx':
+                            body += read_docx(part.get_payload(decode=True))
+                        else:
+                            body += "\n%s" % part.get_payload(decode=True)
                         body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
                     else:
                         body += "\n%s" % part.get_payload(decode=True)
