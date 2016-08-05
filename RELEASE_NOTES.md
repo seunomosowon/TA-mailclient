@@ -44,3 +44,5 @@ when writing other modular inputs.
 * Optimized python import statements
 * Fixed deleting of mails in poplib which was broken in 0.4
 
+###v0.4.3
+* Made extensions case insensitive
