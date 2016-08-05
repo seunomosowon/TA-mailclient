@@ -130,7 +130,7 @@ def process_raw_email(raw, include_headers):
 
             """
             index_attachments_flag = INDEX_ATTACHMENT_DEFAULT
-            extension = os.path.splitext(part.get_filename() or '')[1]
+            extension = os.path.splitext(part.get_filename() or '')[1].lower()
             if extension in SUPPORTED_FILE_EXTENSIONS:
                 file_is_supported_attachment = True
             else:
@@ -156,7 +156,8 @@ def process_raw_email(raw, include_headers):
             """
             else:
                 body += "Found unsupported message part: %s, Filename: %s" % (content_type,part.get_filename())
-            # what if we want to index images for steganalysis? - add an option for user to specify file extensions
+            # what if we want to index images for steganalysis? - maybe add hexdump of image
+            Give the user the responsibility - add an option for user to specify supported file extensions in input?
             """
     else:
         body = message.get_payload(decode=True)
