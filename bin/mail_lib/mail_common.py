@@ -115,9 +115,10 @@ def process_raw_email(raw, include_headers):
       :rtype: list
     """
     message = email.message_from_string(raw)
+    headers = email.message_from_string(raw, headersonly=True)
     print 'started processing'
     body = ''
-    other_headers = '\n'.join(["%s: %s" % (k, v) for k, v in message.items() if k not in ('From', 'To', 'Subject')])
+    other_headers = '\n'.join(["%s: %s" % (k, v) for k, v in headers.items() if k not in ('From', 'To', 'Subject')])
     if include_headers:
         body += other_headers
     if message.is_multipart():
@@ -130,7 +131,7 @@ def process_raw_email(raw, include_headers):
 
             """
             index_attachments_flag = INDEX_ATTACHMENT_DEFAULT
-            extension = os.path.splitext(part.get_filename() or '')[1].lower()
+            extension = str(os.path.splitext(part.get_filename() or '')[1]).lower()
             if extension in SUPPORTED_FILE_EXTENSIONS:
                 file_is_supported_attachment = True
             else:

@@ -156,7 +156,6 @@ class Mail(Script):
         password = input_item['password']
         tmp_passwd = None
         storagepasswords = self.service.storage_passwords
-        sp = storagepasswords[0] or ''
         if storagepasswords is not None:
             ew.log(EventWriter.DEBUG, "%d number of passwords found at endpoint" % (len(storagepasswords)))
             x = set()
