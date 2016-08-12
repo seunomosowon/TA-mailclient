@@ -8,9 +8,7 @@ This is built using the Splunk SDK for Python,
 should work on any Splunk installation with Python available including SHC.
 Passwords should also get replicated between search heard peer members.
 
-For IMAP, this only fetches emails form the 'inbox' folder.
-
-For multipart emails, only `'text/plain'` and `'text/html'` are indexed.
+At present, this only fetches emails form the 'inbox' folder.
 Images and attachments are not indexed.
 
 ###v0.2
@@ -46,3 +44,10 @@ when writing other modular inputs.
 
 ###v0.4.3
 * Made extensions case insensitive
+
+###v0.4.4
+* Updated app to ignore case of file attachment extension 
+
+###v0.4.5
+* Fixed bug. Removed line which caused v0.4.4 to fail
+* Fixed header inclusion
