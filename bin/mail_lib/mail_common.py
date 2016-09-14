@@ -7,6 +7,7 @@ import os
 import socket
 import zipfile
 from email.header import decode_header
+from email.Parser import Parser
 from xml.dom.minidom import parse as parsexml
 
 from constants import *
@@ -115,10 +116,9 @@ def process_raw_email(raw, include_headers):
       :rtype: list
     """
     message = email.message_from_string(raw)
-    headers = email.message_from_string(raw, headersonly=True)
-    print 'started processing'
+    mailheaders = Parser().parsestr(raw, True)
     body = ''
-    other_headers = '\n'.join(["%s: %s" % (k, v) for k, v in headers.items() if k not in ('From', 'To', 'Subject')])
+    other_headers = '\n'.join(["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in ('From', 'To', 'Subject')])
     if include_headers:
         body += other_headers
     if message.is_multipart():
