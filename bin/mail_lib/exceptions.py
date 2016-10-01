@@ -48,16 +48,36 @@ class MailExceptionIMAPLogin(MailException):
     """
     Raised when login fails using IMAP
     """
-    def __init__(self, server, username):
+    def __init__(self, server, username, message):
         self.server = server
         self.username = username
-        MailException.__init__(self, 'IMAP Login failed to server,%s, for user, %s' % (server, username))
+        self.message = message
+        MailException.__init__(self, 'IMAP Login failed to server,%s, for user, %s. %s' % (server, username, message))
 
 
 class MailPasswordNotFound(MailException):
     """
-    Raised when a Poplib exception is thrown and caught
+    Raised when password is not found in Splunk
     """
     def __init__(self, username):
         self.user = username
         MailException.__init__(self, 'Mail password not found for email, %s' % username)
+
+
+class MailConnectionError(MailException):
+    """
+    Raised when there's a connection error
+    """
+    def __init__(self, message):
+        self.message = message
+        MailException.__init__(self, 'Mail connection error: %s' % message)
+
+
+class MailLoginFailed(MailException):
+    """
+    Raised when there's a login failure
+    """
+    def __init__(self, server, username):
+        self.user = username
+        MailException.__init__(self, 'Login failed on %s for username: %s' % (server, username))
+

@@ -18,6 +18,5 @@ SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/
                            'application/javascript', 'application/bat', 'application/x-bat',
                            'application/x-msdos-program', 'application/textedit',
                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
-SUPPORTED_FILE_EXTENSIONS = {'.csv','.txt','.md','.py','.bat','.sh','.rb','.js','.docx'}
+SUPPORTED_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.docx'}
 MAILBOX_CLEANUP_DEFAULTS = 'readonly'
-

@@ -21,6 +21,7 @@ class Mail(Script):
     if the scheme returned by get_scheme has Scheme.use_external_validation
     set to True, the validate_input function.
     """
+
     def get_scheme(self):
         """This overrides the super method from the parent class"""
         scheme = Scheme("Mail Server")
@@ -71,11 +72,11 @@ class Mail(Script):
             name="password",
             title="Account Password",
             description="Enter Password for mail account",
-            validation="match('password','%s')" % REGEX_PASSWORD,
             data_type=Argument.data_type_string,
             required_on_edit=True,
             required_on_create=True
         )
+        # validation="match('password','%s')" % REGEX_PASSWORD,
         scheme.add_argument(password)
         mailbox_cleanup = Argument(
             name="mailbox_cleanup",
@@ -100,17 +101,16 @@ class Mail(Script):
 
     def validate_input(self, validation_definition):
         """
-        We are using external validation to check if the server is indeed
-        a POP3 server. If validate_input does not raise an Exception,
-        the input is assumed to be valid.
+        We are using external validation to check if the server is indeed a POP3 server.
+        If validate_input does not raise an Exception, the input is assumed to be valid.
         """
         mailserver = validation_definition.parameters["mailserver"]
         is_secure = bool(validation_definition.parameters["is_secure"])
         protocol = validation_definition.parameters["protocol"]
-        email = validation_definition.metadata["name"]
-        match = re.match(REGEX_EMAIL, email)
+        email_address = validation_definition.metadata["name"]
+        match = re.match(REGEX_EMAIL, email_address)
         if match is None:
-            raise MailExceptionStanzaNotEmail(email)
+            raise MailExceptionStanzaNotEmail(email_address)
         mail_connectivity_test(server=mailserver, protocol=protocol, is_secure=is_secure)
 
     def encrypt_input_password(self, input_name):
@@ -168,8 +168,8 @@ class Mail(Script):
                            "Got credentials from endpoint - Username(%s)" % username)
                 else:
                     ew.log(EventWriter.DEBUG,
-                           "User: %s, found in storage, did not match the email for this endpoint, %s" % (
-                               credential_entity.username, username))
+                           "User: %s, found in storage, did not match the email for this endpoint, "
+                           "%s. Trying next credential" % (credential_entity.username, username))
             if username in x and (password == PASSWORD_PLACEHOLDER or password is None) and tmp_passwd is not None:
                 sp = [sp for sp in storagepasswords if sp.username == username and sp.realm == REALM][0]
             elif username in x and password != PASSWORD_PLACEHOLDER and password is not None:
@@ -190,14 +190,14 @@ class Mail(Script):
             elif username not in x and not password:
                 # raise Exception or just exit - Password not configured
                 self.disable_input(username)
-                raise Exception('Password not found for input, %s' % input_name)
+                raise MailPasswordNotFound(username)
         elif password is PASSWORD_PLACEHOLDER or password is None:
             ew.log(EventWriter.INFO,
                    "Password needs to be configured for the input before it's enabled and cannot be 'encrypted'")
             ew.log(EventWriter.INFO,
                    "No passwords found, disabling input")
             self.disable_input(input_without_scheme)
-            raise Exception('Password not found for input, %s, user: %s' % (input_name, username))
+            raise MailPasswordNotFound(username)
         else:
             """
             Shouldnt reach here, I think I've captured most if not all possible outcomes above.
@@ -206,7 +206,7 @@ class Mail(Script):
             ew.log(EventWriter.INFO, 'Password needs to be configured for the input before it is enabled'
                                      ' and cannot be \'encrypted\'')
             self.disable_input(input_without_scheme)
-            raise Exception('Password not found for input, %s' % input_name)
+            raise MailPasswordNotFound(username)
         return sp
 
     def stream_events(self, inputs, ew):
@@ -226,20 +226,20 @@ class Mail(Script):
             try:
                 input_name, input_item = input_list
                 mailserver = input_item["mailserver"]
-                email = input_name.split("://")[1]
+                email_address = input_name.split("://")[1]
                 checkpoint_dir = inputs.metadata['checkpoint_dir']
                 is_secure = bool(input_item["is_secure"])
                 protocol = input_item['protocol']
                 mailbox_cleanup = input_item['mailbox_cleanup']
                 include_headers = bool(input_item['include_headers'])
-                match = re.match(REGEX_EMAIL, str(email))
+                match = re.match(REGEX_EMAIL, str(email_address))
                 if match is None:
                     ew.log(EventWriter.ERROR, "Modular input name must be an email address")
-                    self.disable_input(email)
-                    raise MailExceptionStanzaNotEmail(email)
+                    self.disable_input(email_address)
+                    raise MailExceptionStanzaNotEmail(email_address)
                 if mailbox_cleanup is None or mailbox_cleanup == '':
                     mailbox_cleanup = MAILBOX_CLEANUP_DEFAULTS
-                sp = self.save_password(username=email, input_list=input_list, ew=ew)
+                sp = self.save_password(username=email_address, input_list=input_list, ew=ew)
                 if "POP3" == protocol:
                     mail_list = stream_pop_emails(
                         server=mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
@@ -250,7 +250,7 @@ class Mail(Script):
                         mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
                 else:
                     ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
-                    self.disable_input(email)
+                    self.disable_input(email_address)
                     raise MailExceptionInvalidProtocol
                 """Consider adding a checkpoint file here using the first n-characters including the date"""
                 for message_time, checkpoint_id, msg in mail_list:
@@ -270,12 +270,16 @@ class Mail(Script):
                         save_checkpoint(checkpoint_dir, checkpoint_id)
                     else:
                         ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
-            except:
+            except MailException as e:
+                ew.log(EventWriter.INFO, str(e))
+            except e:
+                ew.log(EventWriter.DEBUG, str(e))
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
                 ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)
                 ew.log(EventWriter.DEBUG,
                        traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout))
+
 
 if __name__ == "__main__":
     sys.exit(Mail().run(sys.argv))

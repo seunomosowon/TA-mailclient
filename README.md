@@ -116,4 +116,10 @@ splunk clean inputdata mail
 
 If you're getting errors with using this modular input,
 set the logging level of the ExecProcessor to Debug
-and capture the traceback in the log when contacting me on splunkbase.
+
+/opt/splunk/bin/splunk set log-level ExecProcessor -level DEBUG
+/opt/splunk/bin/splunk set log-level ModInputs -level DEBUG
+
+You can find some diagnostic logs by searching with 
+```index=_internal sourcetype=splunkd (component=ModularInputs OR component=ExecProcessor) mail.py```
+

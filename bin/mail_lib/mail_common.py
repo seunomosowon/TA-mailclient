@@ -118,7 +118,8 @@ def process_raw_email(raw, include_headers):
     message = email.message_from_string(raw)
     mailheaders = Parser().parsestr(raw, True)
     body = ''
-    other_headers = '\n'.join(["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in ('From', 'To', 'Subject')])
+    other_headers = '\n'.join(
+        ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in ('From', 'To', 'Subject')])
     if include_headers:
         body += other_headers
     if message.is_multipart():

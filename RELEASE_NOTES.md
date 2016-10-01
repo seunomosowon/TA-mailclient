@@ -11,6 +11,8 @@ Passwords should also get replicated between search heard peer members.
 At present, this only fetches emails form the 'inbox' folder.
 Images and attachments are not indexed.
 
+Next update will allow the user add a list of Attachment extensions / content types to index.
+
 ###v0.2
 * Adds support for base64 encoded emails.
 
@@ -51,3 +53,11 @@ when writing other modular inputs.
 ###v0.4.5
 * Fixed bug. Removed line which caused v0.4.4 to fail
 * Fixed header inclusion
+
+###v0.4.6
+* Fixed bug. 
+* Fixed header inclusion
+
+###v0.4.7
+* Removed password field validation to allow users have complex or easy passwords however long
+* Handled all mail exceptions 

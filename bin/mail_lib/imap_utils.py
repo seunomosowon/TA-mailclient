@@ -30,7 +30,7 @@ def stream_imap_emails(server, is_secure, credential, checkpoint_dir,
     try:
         mailclient.login(credential.username, credential.clear_password)
     except imaplib.IMAP4.error:
-        raise MailExceptionIMAPLogin(server, credential.username)
+        raise MailLoginFailed(server, credential.username)
     result, folders = mailclient.list()
     if mailbox_mgmt == 'delete' or mailbox_mgmt == 'delayed':
         imap_readonly_flag = False
