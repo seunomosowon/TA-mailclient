@@ -272,8 +272,7 @@ class Mail(Script):
                         ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
             except MailException as e:
                 ew.log(EventWriter.INFO, str(e))
-            except e:
-                ew.log(EventWriter.DEBUG, str(e))
+            except:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
                 ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)
