@@ -4,6 +4,7 @@ This includes common functions that are required when dealing with mails
 import email
 import hashlib
 import os
+import sys
 import socket
 import zipfile
 from email.header import decode_header
@@ -18,6 +19,8 @@ try:
 except ImportError:
     from StringIO import StringIO
 
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 def get_mail_port(protocol, is_secure):
     """
@@ -97,7 +100,6 @@ def read_docx(decoded_payload):
         if zfp.getinfo('word/document.xml'):
             doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
             y += u''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')])
-
         else:
             y = u'Not yet supported docx file'
     else:

@@ -65,3 +65,6 @@ when writing other modular inputs.
 ###v0.4.8
 * removed error introduced in v0.4.7
 
+###v0.4.9
+* Changed encoding to support reading gmail.
+
