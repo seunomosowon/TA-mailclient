@@ -68,3 +68,6 @@ when writing other modular inputs.
 ###v0.4.9
 * Changed encoding to support reading gmail.
 
+###v0.5.0
+* Fixed UTF-8 encoding of mails before indexing. (Supporting Gmail and others)
+

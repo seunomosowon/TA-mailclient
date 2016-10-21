@@ -19,8 +19,6 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-reload(sys)
-sys.setdefaultencoding('utf8')
 
 def get_mail_port(protocol, is_secure):
     """
@@ -105,7 +103,8 @@ def read_docx(decoded_payload):
     else:
         y = u'Email attachment did not match Word / OpenXML document format'
     return y
-
+def recode_mail(part):
+    return unicode(part.get_payload(decode=True), str(part.get_content_charset()), "ignore").encode('utf8', 'xmlcharrefreplace').strip()
 
 def process_raw_email(raw, include_headers):
     """
@@ -152,11 +151,13 @@ def process_raw_email(raw, include_headers):
                             body += read_docx(part.get_payload(decode=True))
                         else:
                             body += "\n%s" % part.get_payload(decode=True)
+                            unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace')
+
                         body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
                     else:
-                        body += "\n%s" % part.get_payload(decode=True)
+                        body += "\n%s" % recode_mail(part)
                 else:
-                    body += "\n%s" % part.get_payload(decode=True)
+                    body += "\n%s" % recode_mail(part)
             """
             else:
                 body += "Found unsupported message part: %s, Filename: %s" % (content_type,part.get_filename())
@@ -164,7 +165,7 @@ def process_raw_email(raw, include_headers):
             Give the user the responsibility - add an option for user to specify supported file extensions in input?
             """
     else:
-        body = message.get_payload(decode=True)
+        body = recode_mail(message)
     mail_for_index = "Date: %s\n" \
                      "Message-ID: %s\n" \
                      "From: %s\n" \
