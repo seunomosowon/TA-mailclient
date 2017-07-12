@@ -71,3 +71,9 @@ when writing other modular inputs.
 ###v0.5.0
 * Fixed UTF-8 encoding of mails before indexing. (Supporting Gmail and others)
 
+###v0.5.1
+* encoding corrections
+* deduplicate Date and MessageId from indexed headers
+* correction of MessageID extraction
+* changed the separator to a predefined one instead of Date and MessageID
+* activated and changed label for unsupported attachment
