@@ -72,7 +72,7 @@ def mail_connectivity_test(server, protocol, is_secure):
 def getheader(header_text, default="ascii"):
     """ This decodes sections of the email header which could be represented in utf8 or other iso languages"""
     headers = decode_header(header_text)
-    header_sections = [unicode(text, charset or default) for text, charset in headers]
+    header_sections = [unicode(text, charset or default, "ignore") for text, charset in headers]
     return u"".join(header_sections)
 
 
@@ -104,7 +104,10 @@ def read_docx(decoded_payload):
         y = u'Email attachment did not match Word / OpenXML document format'
     return y
 def recode_mail(part):
-    return unicode(part.get_payload(decode=True), str(part.get_content_charset()), "ignore").encode('utf8', 'xmlcharrefreplace').strip()
+    cset=str(part.get_content_charset())
+    if cset=="None":
+        cset="ascii"
+    return unicode(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
 
 def process_raw_email(raw, include_headers):
     """
@@ -120,7 +123,7 @@ def process_raw_email(raw, include_headers):
     mailheaders = Parser().parsestr(raw, True)
     body = ''
     other_headers = '\n'.join(
-        ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in ('From', 'To', 'Subject')])
+        ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in ('Date', 'Message-ID', 'From', 'To', 'Subject')])
     if include_headers:
         body += other_headers
     if message.is_multipart():
@@ -158,6 +161,8 @@ def process_raw_email(raw, include_headers):
                         body += "\n%s" % recode_mail(part)
                 else:
                     body += "\n%s" % recode_mail(part)
+            else:
+                body += "\n#UNSUPPORTED_ATTACHMENT: %s, %s\n" % (part.get_filename(),content_type)
             """
             else:
                 body += "Found unsupported message part: %s, Filename: %s" % (content_type,part.get_filename())
@@ -166,7 +171,8 @@ def process_raw_email(raw, include_headers):
             """
     else:
         body = recode_mail(message)
-    mail_for_index = "Date: %s\n" \
+    mail_for_index = "VGhpcyBpcyBhIG1haWwgc2VwYXJhdG9yIGluIGJhc2U2NCBmb3Igb3VyIFNwbHVuayBpbmRleGluZwo=\n" \
+                     "Date: %s\n" \
                      "Message-ID: %s\n" \
                      "From: %s\n" \
                      "Subject: %s\n" \
