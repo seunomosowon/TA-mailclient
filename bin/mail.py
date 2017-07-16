@@ -259,11 +259,7 @@ class Mail(Script):
                             data=msg,
                             host=mailserver,
                             source=input_name,
-                            time="%.3f" % float(
-                                time.mktime(time.strptime(
-                                    message_time[:(len(message_time) - 6)], '%a, %d %b %Y %H:%M:%S')
-                                )
-                            )
+                            time="%.3f" % message_time
                         )
                         ew.write_event(event)
                         save_checkpoint(checkpoint_dir, checkpoint_id)

@@ -9,6 +9,7 @@ import socket
 import zipfile
 from email.header import decode_header
 from email.Parser import Parser
+from email.utils import mktime_tz, parsedate_tz
 from xml.dom.minidom import parse as parsexml
 
 from constants import *
@@ -104,10 +105,16 @@ def read_docx(decoded_payload):
         y = u'Email attachment did not match Word / OpenXML document format'
     return y
 def recode_mail(part):
-    cset=str(part.get_content_charset())
+    cset=str(part.get_content_charset()).lower()
     if cset=="None":
         cset="ascii"
-    return unicode(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
+    result = unicode(part.get_payload(decode=True), cset, "ignore")
+    if result is not None:
+        return result.encode('utf8', 'xmlcharrefreplace').strip()
+    else:
+        return u''
+
+
 
 def process_raw_email(raw, include_headers):
     """
@@ -127,9 +134,16 @@ def process_raw_email(raw, include_headers):
     if include_headers:
         body += other_headers
     if message.is_multipart():
+        part_number = 1
         for part in message.walk():
             content_type = part.get_content_type()
             content_disposition = part.get('Content-Disposition')
+            if 'multipart/alternative' == content_type:
+                # The multipart/alternative part is usually empty.
+                body += '\n%s' % part.get_payload(decode=True)
+                # recode_mail(part)
+                continue
+            body += "\n#START_OF_MULTIPART_%d\n" % part_number
             """
             body += "Content Disposition: %s\nContent Type: %s \n" % (repr(content_disposition) ,content_type)
             Microsoft sometimes sends the wrong content type. : sending csv as application/octect-stream
@@ -153,33 +167,36 @@ def process_raw_email(raw, include_headers):
                         if extension == '.docx':
                             body += read_docx(part.get_payload(decode=True))
                         else:
-                            body += "\n%s" % part.get_payload(decode=True)
-                            unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace')
+                            body += '\n' + recode_mail(part)
 
                         body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
                     else:
                         body += "\n%s" % recode_mail(part)
                 else:
-                    body += "\n%s" % recode_mail(part)
+                    body += "#MULTIPART_ALTERNATIVE_%d: %s\n" % (part_number, content_type)
+                    body += '\n' + recode_mail(part)
             else:
-                body += "\n#UNSUPPORTED_ATTACHMENT: %s, %s\n" % (part.get_filename(),content_type)
+                body += "\n#UNSUPPORTED_ATTACHMENT: file_name = %s - type = %s ; disposition=%s\n" % (part.get_filename(), content_type, content_disposition)
             """
             else:
                 body += "Found unsupported message part: %s, Filename: %s" % (content_type,part.get_filename())
             # what if we want to index images for steganalysis? - maybe add hexdump of image
             Give the user the responsibility - add an option for user to specify supported file extensions in input?
             """
+            body += "\n#END_OF_MULTIPART_%d\n" % part_number
+            part_number += 1
     else:
         body = recode_mail(message)
-    mail_for_index = "VGhpcyBpcyBhIG1haWwgc2VwYXJhdG9yIGluIGJhc2U2NCBmb3Igb3VyIFNwbHVuayBpbmRleGluZwo=\n" \
+    mail_for_index = "%s" \
                      "Date: %s\n" \
                      "Message-ID: %s\n" \
                      "From: %s\n" \
                      "Subject: %s\n" \
                      "To: %s\n" \
-                     "Body: %s\n" % (message['Date'], message['Message-ID'],
+                     "Body: %s\n" % (MESSAGE_PREAMBLE, message['Date'], message['Message-ID'],
                                      message['From'], getheader(message['Subject']), message['To'], body)
-    return [message['Date'], message['Message-ID'], mail_for_index]
+    message_time = float(mktime_tz(parsedate_tz(message['Date'])))
+    return [message_time, message['Message-ID'], mail_for_index]
 
 
 def save_checkpoint(checkpoint_dir, msg):

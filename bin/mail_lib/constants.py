@@ -20,3 +20,4 @@ SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/
                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
 SUPPORTED_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.docx'}
 MAILBOX_CLEANUP_DEFAULTS = 'readonly'
+MESSAGE_PREAMBLE = "VGhpcyBpcyBhIG1haWwgc2VwYXJhdG9yIGluIGJhc2U2NCBmb3Igb3VyIFNwbHVuayBpbmRleGluZwo=\n"
