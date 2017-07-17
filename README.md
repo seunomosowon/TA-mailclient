@@ -111,7 +111,8 @@ Issues can be reported and tracked on Github at this time.
 
 This uses the inbuilt poplib and imaplib that comes with Python by default.
 
-Contributions on github are welcome and will be incorporated into the main release.
+Contributions on github are welcome and will be incorporated into the main release. 
+Current contributors are listed in AUTHORS.md.
 
 ##### Support and resources
 
