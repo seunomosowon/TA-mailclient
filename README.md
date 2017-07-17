@@ -97,7 +97,8 @@ as it requires Python which comes with an HF or a full Splunk install.
 TA-mailclient includes the following new features:
 
 - Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
-    - Also added static mail preamble for line breaks
+    - Also added static mail preamble for line break. Event breaking configuration may not be 
+    required since the modular input writes individual events separately, but it's always a good idea.
 - Added delineations and extractions to multipart content  
 
 ##### Known issues

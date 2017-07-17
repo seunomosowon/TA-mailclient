@@ -105,15 +105,17 @@ def read_docx(decoded_payload):
         y = u'Email attachment did not match Word / OpenXML document format'
     return y
 def recode_mail(part):
-    cset=str(part.get_content_charset()).lower()
-    if cset=="None":
-        cset="ascii"
-    result = unicode(part.get_payload(decode=True), cset, "ignore")
-    if result is not None:
-        return result.encode('utf8', 'xmlcharrefreplace').strip()
-    else:
-        return u''
-
+    cset = part.get_content_charset()
+    if cset == "None":
+        cset = "ascii"
+    try:
+        if None is part.get_payload(decode=True):
+            result = u''
+        else:
+            result = unicode(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
+    except TypeError:
+        result = part.get_payload(decode=True).encode('utf8', 'xmlcharrefreplace').strip()
+    return result
 
 
 def process_raw_email(raw, include_headers):
@@ -138,7 +140,7 @@ def process_raw_email(raw, include_headers):
         for part in message.walk():
             content_type = part.get_content_type()
             content_disposition = part.get('Content-Disposition')
-            if 'multipart/alternative' == content_type:
+            if content_type in ['multipart/alternative','multipart/mixed']:
                 # The multipart/alternative part is usually empty.
                 body += '\n%s' % part.get_payload(decode=True)
                 # recode_mail(part)
@@ -174,7 +176,7 @@ def process_raw_email(raw, include_headers):
                         body += "\n%s" % recode_mail(part)
                 else:
                     body += "#MULTIPART_ALTERNATIVE_%d: %s\n" % (part_number, content_type)
-                    body += '\n' + recode_mail(part)
+                    body += recode_mail(part)
             else:
                 body += "\n#UNSUPPORTED_ATTACHMENT: file_name = %s - type = %s ; disposition=%s\n" % (part.get_filename(), content_type, content_disposition)
             """
