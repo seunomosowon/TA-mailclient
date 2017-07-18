@@ -20,9 +20,5 @@ mailbox_cleanup = [delete,delayed,readonly]
  * readonly: mails will not be deleted. It will be read and left in the mailbox.
 * If this is not set, the default option used will be readonly
 
-interval = [<number>|<cron schedule>]
-* This inherits the interval parameter from the Splunk inputs.
-* This should be set to occur frequently, as it fetches a maximum of 20 emails for each run.
-
 include_headers =  <bool>
 * This determines if email headers should be included.

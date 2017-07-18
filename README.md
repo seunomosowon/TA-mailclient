@@ -100,6 +100,7 @@ TA-mailclient includes the following new features:
     - Also added static mail preamble for line break. Event breaking configuration may not be 
     required since the modular input writes individual events separately, but it's always a good idea.
 - Added delineations and extractions to multipart content  
+- Removed interval from inputs.conf.spec
 
 ##### Known issues
 
