@@ -1,0 +1,49 @@
+notifications:
+  email: true
+
+sudo: required
+
+language: python
+
+services:
+  - docker
+
+before_install:
+  - export SPLUNK_HOME="/opt/splunk"
+  # Pull docker image
+  - docker pull splunk/splunk
+  # Add DOCKER to iptables, 1/10 times this is needed, force 0 exit status
+  - sudo iptables -N DOCKER || true
+  # Start Docker container
+  - docker create --name autobuild --hostname autobuild -v /opt/splunk/etc/apps
+    -e "SPLUNK_START_ARGS=--accept-license" -e "SPLUNK_USER=root" -p "8089:8089"
+    -e SPLUNK_CMD='edit user admin -password random_password -role admin -auth admin:changeme'
+    splunk/splunk:$SPLUNK_VERSION
+  - echo "Starting container"
+  - docker start autobuild
+  - for i in `seq 0 5 100`;
+    do if curl --fail -k -u admin:random_password https://localhost:8089/services/server/info &> /dev/null;
+    then break;
+    fi;
+    echo "Waited $i seconds for container to start" ; sleep 5;
+    done
+  - # echo "changing default admin password"
+  - # docker exec autobuild entrypoint.sh splunk edit user admin -password random_password -role admin -auth admin:changeme
+
+install:
+  # Could copy the TA during the setup above
+  - echo "Installing TA"
+  - docker cp $TRAVIS_BUILD_DIR autobuild:/opt/splunk/etc/apps/
+  # Restart Splunk after coping add-on
+  - echo "Restarting splunk"
+  - docker exec autobuild entrypoint.sh splunk restart
+
+script:
+  - echo "Checking if TA was installed successfully and enabled"
+  - curl --fail -k -u admin:random_password https://localhost:8089/services/apps/local/TA-mailclient | grep "\"disabled\">0"
+  - echo "Checking if modular input is not broken"
+  - curl --fail -k -u admin:random_password https://localhost:8089/services/data/modular-inputs/mail &>/dev/null
+
+env:
+  - "SPLUNK_VERSION=6.6.1"
+  - "SPLUNK_VERSION=latest"
