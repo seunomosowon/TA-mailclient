@@ -52,7 +52,7 @@ script:
   - sleep 60
   - echo "Check if password encryption is working"
   - docker exec autobuild_$SPLKMGMT grep -B1 encrypted /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
-  - sleep 70
+  - sleep 75
   - echo "Check if a test mail was pulled"
   - for i in `seq 0 5 25`; do if curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export
     --data-urlencode search="search index=main sourcetype=mail:* | table _time sourcetype source subject"
@@ -64,5 +64,5 @@ script:
   # configure mailbox using encrypted travis entries,send random email to mailbox, sleep 60, and then search for random email
 
 env:
-    - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
+    # - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
     - SPLUNK_VERSION=latest SPLKMGMT=9901
