@@ -38,7 +38,7 @@ install:
   - echo "Installing TA"
   - docker cp $TRAVIS_BUILD_DIR autobuild_$SPLKMGMT:/opt/splunk/etc/apps/
   - docker exec autobuild_$SPLKMGMT mkdir /opt/splunk/etc/apps/TA-mailclient/local/
-  - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://pop_to_splunk@gmx.com]\npassword = $TEST_MAIL_PASSWD\nprotocol = POP3\ndisabled = 0\nhost = pop.gmx.com\ninclude_headers = 1\ninterval = 60\nis_secure = 1\nmailbox_cleanup = delete\nmailserver = pop.gmx.com\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
+  - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://pop_to_splunk@gmx.com]\npassword=$MB_PASSWD\nprotocol = POP3\ndisabled = 0\nhost = pop.gmx.com\ninclude_headers = 1\ninterval = 60\nis_secure = 1\nmailbox_cleanup = delete\nmailserver = pop.gmx.com\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
   #- docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
   # Restart Splunk after coping add-on
   - echo "Restarting splunk"
@@ -49,13 +49,11 @@ script:
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/apps/local/TA-mailclient | grep "\"disabled\">0"
   - echo "Checking if modular input is not broken"
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/data/modular-inputs/mail &>/dev/null
+  - sleep 60
   - echo "Check if password encryption is working"
   - docker exec autobuild_$SPLKMGMT cat /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
   # configure mailbox using encrypted travis entries,send random email to mailbox, sleep 60, and then search for random email
 
 env:
-  matrix:
-    #- SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
+    - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
     - SPLUNK_VERSION=latest SPLKMGMT=9901
-  global:
-    secure: 1upe1iPcAipNkWsjHdEtRnznTv1lYkUZVG937kWFGQWzlLsG+Y6Cfw/a/3YkJ+yQ69lkg5F70qlCF3sptgNzQZW6nwov7Pm+KthtFWICzEfZpHIt+ZCgLaqEQuSSFbNXPoYsJQrzvw/laytWCQ23dEa1IDx1r6dXj3nmJtMj2/IHiPPN7xbuQnpeLfBUrnTPlQJMZu+JnA1VP85Xda0YdjfrsLaOwD5LxpA9O4wPWGL6HiSdU5PO+kjrjLOE//IvZXbu54DfA+/0wtd9Kj4vUu62UKJ6j+gZyl+0XYPdEccRN7fki1MpNChNv/V6TksCZVO72IcIAIO0S5pudiQNoKe+hLGViOPwMLNamB8LBYmyIDNjnogZSOCKibMQeHMRKhvRBXiDuqfZjSek8BMQ/6tOw4EnYN96mH7hQX/lga5hRN33bKiDKKN2RBzb424SS36TFCI5SLKXN9iD13gTDj7trqOZb7/ly9j9m4QuNCqMTWwdjfnw1ZOYiSIGAOotLvhMmLTj36RANYtSDOD/OONrDb3n45uYhJEXs5Lav54IBwRwRCfiGI8UjC5NDVf/WvUzNAhHLtvyzOfN58kjRxumx1X8vsnbz89gIREHL13o15ZGEeB//dHXb6TgVAqDnJ2NqoAUCZAu8AtMPH17By6/koRV1ZMnVLQk5F3KReY=
