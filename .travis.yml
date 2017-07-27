@@ -18,7 +18,7 @@ before_install:
   - sudo iptables -I INPUT -p tcp --dports $SPLKMGMT -j ACCEPT || true
   # Start Docker container
   - docker create --name autobuild_$SPLKMGMT --hostname autobuild -v /opt/splunk/etc/apps
-    -e "SPLUNK_START_ARGS=--accept-license" -p "$SPLKMGMT:8089"
+    -e "SPLUNK_START_ARGS=--accept-license" -p "$SPLKMGMT:8089" -e "SPLUNK_USER=root"
     -e SPLUNK_CMD='edit user admin -password random_password -role admin -auth admin:changeme'
     splunk/splunk:$SPLUNK_VERSION
   - echo "Starting container"
@@ -38,9 +38,8 @@ install:
   - echo "Installing TA"
   - docker cp $TRAVIS_BUILD_DIR autobuild_$SPLKMGMT:/opt/splunk/etc/apps/
   - docker exec autobuild_$SPLKMGMT mkdir /opt/splunk/etc/apps/TA-mailclient/local/
-  - docker exec autobuild_$SPLKMGMT bash -c
-    "echo -e '[mail://pop_to_splunk@gmx.com]\npassword = $TEST_MAIL_PASSWD\nprotocol = POP3\ndisabled = 0\nhost = pop.gmx.com\ninclude_headers = 1\ninterval = 60\nis_secure = 1\nmailbox_cleanup = delete\nmailserver = pop.gmx.com\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
-  - docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
+  - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://pop_to_splunk@gmx.com]\npassword = $TEST_MAIL_PASSWD\nprotocol = POP3\ndisabled = 0\nhost = pop.gmx.com\ninclude_headers = 1\ninterval = 60\nis_secure = 1\nmailbox_cleanup = delete\nmailserver = pop.gmx.com\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
+  #- docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
   # Restart Splunk after coping add-on
   - echo "Restarting splunk"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk restart
