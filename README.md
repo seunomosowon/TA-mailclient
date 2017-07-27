@@ -30,8 +30,8 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.0 |
-| Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.0</li></ul> |
+| App Version | 1.0.2 |
+| Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
 using either POP3 or IMAP, with or without SSL.
@@ -42,7 +42,7 @@ This is built using the Splunk SDK for Python, should work on any Splunk
 installation with Python available including SHC.
 Passwords should also get replicated between search heard peer members.
 
-This only fetches emails form the 'inbox' folder. 
+This only fetches emails form the 'inbox' folder.
 A future upgrade might include support for additional mailbox directories.
 
 By default, it fetches up to 25 new emails at every run.
@@ -61,12 +61,12 @@ It supports all 'text/*' content types and several well known scripts (.bat, .js
 'application/x-msdos-program'
 'application/textedit'
 ```
-Images, videos and executables are not indexed. 
+Images, videos and executables are not indexed.
 
 ##### Scripts and binaries
 
 Includes:
-- Splunk SDK for Python (1.6.0)
+- Splunk SDK for Python (1.6.2)
 - mail_lib - supports the calculation of vincenty distances which is used by default
     - pop_utils.py - functions used to retrieve mails via POP3 using the built-in poplib library
     - imap_utils.py - functions used to retrieve mails via IMAP using the built-in imaplib library
@@ -77,7 +77,7 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.0 of the TA-mailclient is compatible with:
+Version 1.0.2 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 6.x |
 | --- | --- |
@@ -85,11 +85,11 @@ Version 1.0 of the TA-mailclient is compatible with:
 | Platforms | Platform independent |
 | Lookup file changes | No lookups included in this app |
 
-The administrator is responsible for setting the sourcetype to whatever is desired, 
-as well as extracting CIM fields for the sourcetype. 
-This app already includes several extractions for different parts of the message that can be reused. 
+The administrator is responsible for setting the sourcetype to whatever is desired,
+as well as extracting CIM fields for the sourcetype.
+This app already includes several extractions for different parts of the message that can be reused.
 
-This app will not work on a universal forwarder, 
+This app will not work on a universal forwarder,
 as it requires Python which comes with an HF or a full Splunk install.
 
 ##### New features
@@ -97,14 +97,16 @@ as it requires Python which comes with an HF or a full Splunk install.
 TA-mailclient includes the following new features:
 
 - Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
-    - Also added static mail preamble for line break. Event breaking configuration may not be 
+    - Also added static mail preamble for line break. Event breaking configuration may not be
     required since the modular input writes individual events separately, but it's always a good idea.
 - Added delineations and extractions to multipart content  
 - Removed interval from inputs.conf.spec
+- Upgraded Splunk SDK to 1.6.2
+- Added additional test cases on Travis CI to test that functionality works
 
 ##### Known issues
 
-Currently no known issues in version 1.0 of TA-mailclient. 
+Currently no known issues in version 1.0.2 of TA-mailclient.
 Issues can be reported and tracked on Github at this time.
 
 
@@ -112,7 +114,7 @@ Issues can be reported and tracked on Github at this time.
 
 This uses the inbuilt poplib and imaplib that comes with Python by default.
 
-Contributions on github are welcome and will be incorporated into the main release. 
+Contributions on github are welcome and will be incorporated into the main release.
 Current contributors are listed in AUTHORS.md.
 
 ##### Support and resources
@@ -162,10 +164,10 @@ Also, feel free to send me a list of well known servers that you 're using this 
 
 * v0.4.7
     * Removed password field validation to allow users have complex or easy passwords however long
-    * Handled all mail exceptions 
+    * Handled all mail exceptions
 
 * v0.4.6
-    * Fixed bug. 
+    * Fixed bug.
     * Fixed header inclusion
 
 * v0.4.5
@@ -217,12 +219,12 @@ TA-mailclient supports the following server platforms in the versions supported 
 
 The app was developed to be platform agnostic, but tests are mostly run on Linix.
 
-Please contact the developer with issues running this on Windows. See the Splunk documentation for hardware 
-requirements for running a heavy forwarder. 
+Please contact the developer with issues running this on Windows. See the Splunk documentation for hardware
+requirements for running a heavy forwarder.
 
 #### Software requirements
 
-To function properly, TA-mailclient has no external requirements but needs to be installed on a full Splunk 
+To function properly, TA-mailclient has no external requirements but needs to be installed on a full Splunk
 install which provides python and the required libraries (poplib and imaplib).
 
 #### Splunk Enterprise system requirements
@@ -266,8 +268,8 @@ More instructions available at the following [URL](https://docs.splunk.com/Docum
 
 ##### Deploy to Splunk Cloud
 
-For Splunk cloud installations, install TA-mailclient on a heavy forwarder that has been configured to forward 
-events to your Splunk Cloud instance. 
+For Splunk cloud installations, install TA-mailclient on a heavy forwarder that has been configured to forward
+events to your Splunk Cloud instance.
 
 You can work with Splunk Support on installing the Support add-on on Splunk Cloud.
 
@@ -291,11 +293,11 @@ mailbox_cleanup = delete
 Once the input is read, the password gets replaced and shows as 'encrypted'.
 As such, the password for the mailbox must not be set to 'encrypted'.
 
-The input can be edited if the password needs to be updated, and the password stored in a password 
-storage endpoint would get updated automatically. Passwords are never stored in clear text. 
+The input can be edited if the password needs to be updated, and the password stored in a password
+storage endpoint would get updated automatically. Passwords are never stored in clear text.
 
-A different sourcetype can be specified for each input, thus making it possible to have different sourcetypes 
-for every mailbox. Mailbox cleanup is also managed automatically, and emails are deleted once it has been 
+A different sourcetype can be specified for each input, thus making it possible to have different sourcetypes
+for every mailbox. Mailbox cleanup is also managed automatically, and emails are deleted once it has been
 indexed.
 
 ##### Parameters
@@ -340,7 +342,7 @@ splunk clean inputdata mail
 #### Diagnostic & Debug Logs
 
 Logs can be found by searching Splunk internal logs
- 
+
 ```index=_internal sourcetype=splunkd (component=ModularInputs OR component=ExecProcessor) mail.py```
 
 
