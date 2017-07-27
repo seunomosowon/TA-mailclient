@@ -51,7 +51,8 @@ script:
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/data/modular-inputs/mail &>/dev/null
   - sleep 60
   - echo "Check if password encryption is working"
-  - docker exec autobuild_$SPLKMGMT cat /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
+  - docker exec autobuild_$SPLKMGMT grep -B1 encrypted /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
+  #- docker exec autobuild_$SPLKMGMT cat /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
   # configure mailbox using encrypted travis entries,send random email to mailbox, sleep 60, and then search for random email
 
 env:
