@@ -62,9 +62,6 @@ script:
     echo "Waited $i seconds for pop3 results" ;
     sleep 5; done
 
-  #- docker exec autobuild_$SPLKMGMT cat /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
-  # configure mailbox using encrypted travis entries,send random email to mailbox, sleep 60, and then search for random email
-
 env:
     # - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
     - SPLUNK_VERSION=latest SPLKMGMT=9901
