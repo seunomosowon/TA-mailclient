@@ -15,44 +15,44 @@ before_install:
   - docker pull splunk/splunk
   # Add DOCKER to iptables, 1/10 times this is needed, force 0 exit status
   - sudo iptables -N DOCKER || true
-  - sudo iptables -I INPUT -p tcp --dports $SPLKMGMT -j ACCEPT || true
+  - sudo iptables -I INPUT -p tcp --dport $SPLKMGMT -j ACCEPT || true
   # Start Docker container
   - docker create --name autobuild_$SPLKMGMT --hostname autobuild -v /opt/splunk/etc/apps
     -e "SPLUNK_START_ARGS=--accept-license" -p "$SPLKMGMT:8089" -e "SPLUNK_USER=root"
     -e SPLUNK_CMD='edit user admin -password random_password -role admin -auth admin:changeme'
     splunk/splunk:$SPLUNK_VERSION
-  - echo "Starting container"
+  - echo "`date -u` - Starting container"
   - docker start autobuild_$SPLKMGMT
   - for i in `seq 0 5 100`;
     do if curl --fail -k -u admin:random_password https://localhost:$SPLKMGMT/services/server/info &> /dev/null;
     then break;
     fi;
-    echo "Waited $i seconds for container to start" ; sleep 5;
+    echo "`date -u` - Waited $i seconds for container to start" ; sleep 5;
     if [ 100 -eq "$i" ]; then exit -1 ; fi ;
     done
-  - echo "changing default admin password"
+  - echo "`date -u` - Changing default admin password"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk edit user admin -password $RANDOM_PASSWORD -role admin -auth admin:random_password
 
 install:
   # Could copy the TA during the setup above
-  - echo "Installing TA"
+  - echo "`date -u` - Installing TA"
   - docker cp $TRAVIS_BUILD_DIR autobuild_$SPLKMGMT:/opt/splunk/etc/apps/
   - docker exec autobuild_$SPLKMGMT mkdir /opt/splunk/etc/apps/TA-mailclient/local/
   - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://pop_to_splunk@gmx.com]\npassword=$MB_PASSWD\nprotocol = POP3\ndisabled = 0\nhost = pop.gmx.com\ninclude_headers = 1\ninterval = 60\nis_secure = 1\nmailbox_cleanup = delete\nmailserver = pop.gmx.com\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
   #- docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
   # Restart Splunk after coping add-on
-  - echo "Restarting splunk"
+  - echo "`date -u` - Restarting splunk"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk restart
 
 script:
-  - echo "Checking if TA was installed successfully and enabled"
+  - echo "`date -u` - Checking if TA was installed successfully and enabled"
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/apps/local/TA-mailclient | grep "\"disabled\">0"
-  - echo "Checking if modular input is not broken"
+  - echo "`date -u` - Checking if modular input is not broken"
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/data/modular-inputs/mail &>/dev/null
   - sleep 70
-  - echo "Check if password encryption is working"
+  - echo "`date -u` - Check if password encryption is working"
   - docker exec autobuild_$SPLKMGMT grep -B1 encrypted /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
-  - echo "Check if a test mail was pulled"
+  - echo "`date -u` - Check if a test mail was pulled"
   - for i in `seq 0 5 25`; do if curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export
     --data-urlencode search="search index=main sourcetype=mail:* | table _time sourcetype source _raw"
     -d output_mode=csv -d earliest="-365d" -d latest=now ; then break; fi;
