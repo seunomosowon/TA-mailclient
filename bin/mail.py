@@ -2,7 +2,6 @@
 
 # import libraries required
 import re
-import time
 import traceback
 
 from mail_lib.imap_utils import *
@@ -125,7 +124,11 @@ class Mail(Script):
         kwargs = dict(host=tmp_input.mailserver, password=PASSWORD_PLACEHOLDER, mailserver=tmp_input.mailserver,
                       is_secure=tmp_input.is_secure, protocol=tmp_input.protocol,
                       mailbox_cleanup=tmp_input.mailbox_cleanup, include_headers=tmp_input.include_headers)
-        tmp_input.update(**kwargs).refresh()
+        try:
+            tmp_input.update(**kwargs).refresh()
+        except HTTPError, e:
+            self.disable_input(input_name)
+            raise MailPasswordEncryptException(e)
 
     def disable_input(self, input_name):
         """
@@ -175,13 +178,20 @@ class Mail(Script):
                 ew.log(EventWriter.INFO,
                        "Passwords updated. Updating storage")
                 sp = [sp for sp in storagepasswords if sp.username == username and sp.realm == REALM][0]
-                sp.update(**{'password': password}).refresh()
+                try:
+                    sp.update(**{'password': password}).refresh()
+                except Exception, e:
+                    raise MailPasswordUpdateException(e)
                 ew.log(EventWriter.INFO, "Encrypting input password")
                 self.encrypt_input_password(input_without_scheme)
             elif username not in x and password:
                 ew.log(EventWriter.INFO,
                        "Password entity created - %s\%s." % (REALM, username))
-                sp = storagepasswords.create(password=password, username=username, realm=REALM)
+                try:
+                    sp = storagepasswords.create(password=password, username=username, realm=REALM)
+                except Exception, e:
+                    self.disable_input(username)
+                    raise MailPasswordCreateException(e)
                 self.encrypt_input_password(input_without_scheme)
                 ew.log(EventWriter.DEBUG,
                        "Password obtained from inputs, and written to storage. Input (%s) updated with placeholder" % (
@@ -254,14 +264,14 @@ class Mail(Script):
                 """Consider adding a checkpoint file here using the first n-characters including the date"""
                 for message_time, checkpoint_id, msg in mail_list:
                     if not locate_checkpoint(checkpoint_dir, checkpoint_id):
-                        event = Event(
+                        logevent = Event(
                             stanza=input_name,
                             data=msg,
                             host=mailserver,
                             source=input_name,
                             time="%.3f" % message_time
                         )
-                        ew.write_event(event)
+                        ew.write_event(logevent)
                         save_checkpoint(checkpoint_dir, checkpoint_id)
                     else:
                         ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")

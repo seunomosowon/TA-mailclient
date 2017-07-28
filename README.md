@@ -104,6 +104,7 @@ TA-mailclient includes the following new features:
 - Upgraded Splunk SDK to 1.6.2
 - Added additional test cases on Travis CI to test that functionality works
 - Fix loading local exceptions
+- Added exception handling for updating storage/password
 
 ##### Known issues
 
