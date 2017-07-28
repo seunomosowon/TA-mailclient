@@ -11,7 +11,7 @@ Here are some of the keys included in a sample mail from gmail to gmx:
 
 import poplib
 
-from mail_common import *
+from .mail_common import *
 
 
 def stream_pop_emails(server, is_secure, credential, checkpoint_dir,
