@@ -1,5 +1,5 @@
 import imaplib
-from mail_common import *
+from .mail_common import *
 
 
 def stream_imap_emails(server, is_secure, credential, checkpoint_dir,

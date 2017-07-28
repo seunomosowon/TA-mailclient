@@ -12,8 +12,8 @@ from email.Parser import Parser
 from email.utils import mktime_tz, parsedate_tz
 from xml.dom.minidom import parse as parsexml
 
-from constants import *
-from exceptions import *
+from .constants import *
+from .exceptions import *
 
 try:
     from cStringIO import StringIO

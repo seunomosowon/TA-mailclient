@@ -55,7 +55,7 @@ script:
   - sleep 75
   - echo "Check if a test mail was pulled"
   - for i in `seq 0 5 25`; do if curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export
-    --data-urlencode search="search index=main sourcetype=mail:* | table _time sourcetype source subject"
+    --data-urlencode search="search index=main sourcetype=mail:* | table _time sourcetype _raw"
     -d output_mode=csv -d earliest="-365d" -d latest=now ; then break; fi;
     echo "Waited $i seconds for imap results" ;
     sleep 5; done
