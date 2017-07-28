@@ -3,7 +3,7 @@ notifications:
 
 sudo: required
 
-language: python
+language: generic
 
 services:
   - docker
