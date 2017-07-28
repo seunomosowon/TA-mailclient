@@ -39,24 +39,27 @@ install:
   - docker cp $TRAVIS_BUILD_DIR autobuild_$SPLKMGMT:/opt/splunk/etc/apps/
   - docker exec autobuild_$SPLKMGMT mkdir /opt/splunk/etc/apps/TA-mailclient/local/
   - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://pop_to_splunk@gmx.com]\npassword=$MB_PASSWD\nprotocol = POP3\ndisabled = 0\nhost = pop.gmx.com\ninclude_headers = 1\ninterval = 60\nis_secure = 1\nmailbox_cleanup = delete\nmailserver = pop.gmx.com\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
-  #- docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
+  # docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
   # Restart Splunk after coping add-on
   - echo "`date -u` - Restarting splunk"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk restart
 
 script:
   - echo "`date -u` - Checking if TA was installed successfully and enabled"
-  - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/apps/local/TA-mailclient | grep "\"disabled\">0"
+  - curl -s --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/apps/local/TA-mailclient | grep "\"disabled\">0"
   - echo "`date -u` - Checking if modular input is not broken"
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/data/modular-inputs/mail &>/dev/null
-  - sleep 70
+  - echo "`date -u` - Checking if test modular input is not disabled"
+  - curl -s --fail -k -u admin:$RANDOM_PASSWORD https://localhost:8089/servicesNS/nobody/TA-mailclient/data/inputs/mail/pop_to_splunk%40gmx.com | grep "\"disabled\">0"
+
+  - sleep 30
   - echo "`date -u` - Check if password encryption is working"
   - docker exec autobuild_$SPLKMGMT grep -B1 encrypted /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
   - echo "`date -u` - Check if a test mail was pulled"
-  - for i in `seq 0 5 25`; do if curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export
+  - for i in `seq 0 5 25`; do if curl --get -s -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export
     --data-urlencode search="search index=main sourcetype=mail:* | table _time sourcetype source _raw"
     -d output_mode=csv -d earliest="-365d" -d latest=now ; then break; fi;
-    echo "Waited $i seconds for imap results" ;
+    echo "Waited $i seconds for pop3 results" ;
     sleep 5; done
 
   #- docker exec autobuild_$SPLKMGMT cat /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
