@@ -19,6 +19,7 @@ class Mail(Script):
     if the scheme returned by get_scheme has Scheme.use_external_validation
     set to True, the validate_input function.
     """
+    APP = __file__.split(os.sep)[-3]
 
     def get_scheme(self):
         """This overrides the super method from the parent class"""
@@ -111,112 +112,93 @@ class Mail(Script):
             raise MailExceptionStanzaNotEmail(email_address)
         mail_connectivity_test(server=mailserver, protocol=protocol, is_secure=is_secure)
 
-    def encrypt_input_password(self, input_name):
+    def mask_input_password(self):
         """
         This encrypts the password stored in inputs.conf for the input name passed as an argument.
-        :param input_name: Name of input that needs to be modified.
-            This must be the input name just after the scheme - 'scheme://input_name_without_scheme'
-        :type input_name: basestring
-        :return: Returns the input with the encrypted password
-        :rtype: Input
         """
-        tmp_input = self.service.inputs[input_name]
+        tmp_input = self.service.inputs[self.username]
         kwargs = dict(host=tmp_input.mailserver, password=PASSWORD_PLACEHOLDER, mailserver=tmp_input.mailserver,
                       is_secure=tmp_input.is_secure, protocol=tmp_input.protocol,
                       mailbox_cleanup=tmp_input.mailbox_cleanup, include_headers=tmp_input.include_headers)
         try:
             tmp_input.update(**kwargs).refresh()
         except HTTPError, e:
-            self.disable_input(input_name)
+            self.disable_input()
             raise MailPasswordEncryptException(e)
 
-    def disable_input(self, input_name):
+    def get_credential(self):
+        """
+        This encrypts the password stored in inputs.conf for the input name passed as an argument.
+        :return: Returns the input with the encrypted password
+        :rtype: StoragePassword
+        """
+        storagepasswords = self.service.storage_passwords
+        if storagepasswords is not None:
+            for credential_entity in storagepasswords:
+                """ Use password in storage endpoint if realm matches """
+                if credential_entity.username == self.username and credential_entity.realm == self.realm:
+                    return credential_entity
+        else:
+            return None
+
+    def encrypt_password(self):
+        """
+        This encrypts the password stored in inputs.conf for the input name passed as an argument.
+        :return: Returns the input with the encrypted password
+        :rtype: StoragePassword
+        """
+        storagepasswords = self.service.storage_passwords
+        try:
+            sp = storagepasswords.create(password=self.password, username=self.username, realm=self.realm)
+        except Exception, e:
+            self.disable_input()
+            raise Exception("Could not create password entry {%s:%s} in passwords.conf: %s" % (
+                self.username, self.realm, e))
+        return sp
+
+    def delete_password(self):
+        """
+        This deletes the password stored in inputs.conf for the input name passed as an argument.
+        """
+        try:
+            self.service.storage_passwords.delete(self.username, self.realm)
+        except Exception, e:
+            self.disable_input()
+            raise Exception("Could not delete credential {%s:%s} from passwords.conf: %s" % (
+                self.username, self.realm, e))
+
+    def disable_input(self):
         """
         This disables a modular input given the input name.
-        :param input_name: Name of input that needs to be disabled.
-            This must be the input name just after the scheme - 'scheme://input_name_without_scheme'
-        :type input_name: basestring
         :return: Returns the disabled input
         :rtype: Entity
         """
-        self.service.inputs[input_name].disable()
+        self.service.inputs[self.input_name].disable()
 
-    def save_password(self, username, input_list, ew):
+    def save_password(self):
         """
-        :param username: Username to be saved or updated to Splunk endpoint, str or unicode
-        :type username: basestring
-        :param input_list: This is a list containing the input name and input settings for a single modular instance
-        :type input_list: list
-        :param ew: This is the event writer object that allows writing of logs or events
-        :type ew: EventWriter
         :return: This returns a StoragePassword with the right credentials,
                     after saving or updating the storage/passwords endpoint
          :rtype: StoragePassword
         """
-        input_name, input_item = input_list
-        input_without_scheme = input_name.split("://")[1]
-        password = input_item['password']
-        tmp_passwd = None
-        storagepasswords = self.service.storage_passwords
-        if storagepasswords is not None:
-            ew.log(EventWriter.DEBUG, "%d number of passwords found at endpoint" % (len(storagepasswords)))
-            x = set()
-            for credential_entity in storagepasswords:
-                """ Use password in storage endpoint if realm matches """
-                x.add(credential_entity.username)
-                if credential_entity.username == username and credential_entity.realm == REALM:
-                    tmp_passwd = credential_entity.clear_password
-                    ew.log(EventWriter.INFO,
-                           "Got credentials from endpoint - Username(%s)" % username)
-                else:
-                    ew.log(EventWriter.DEBUG,
-                           "User: %s, found in storage, did not match the email for this endpoint, "
-                           "%s. Trying next credential" % (credential_entity.username, username))
-            if username in x and (password == PASSWORD_PLACEHOLDER or password is None) and tmp_passwd is not None:
-                sp = [sp for sp in storagepasswords if sp.username == username and sp.realm == REALM][0]
-            elif username in x and password != PASSWORD_PLACEHOLDER and password is not None:
-                ew.log(EventWriter.INFO,
-                       "Passwords updated. Updating storage")
-                sp = [sp for sp in storagepasswords if sp.username == username and sp.realm == REALM][0]
-                try:
-                    sp.update(**{'password': password}).refresh()
-                except Exception, e:
-                    raise MailPasswordUpdateException(e)
-                ew.log(EventWriter.INFO, "Encrypting input password")
-                self.encrypt_input_password(input_without_scheme)
-            elif username not in x and password:
-                ew.log(EventWriter.INFO,
-                       "Password entity created - %s\%s." % (REALM, username))
-                try:
-                    sp = storagepasswords.create(password=password, username=username, realm=REALM)
-                except Exception, e:
-                    self.disable_input(username)
-                    raise MailPasswordCreateException(e)
-                self.encrypt_input_password(input_without_scheme)
-                ew.log(EventWriter.DEBUG,
-                       "Password obtained from inputs, and written to storage. Input (%s) updated with placeholder" % (
-                           input_name))
-            elif username not in x and not password:
-                # raise Exception or just exit - Password not configured
-                self.disable_input(username)
-                raise MailPasswordNotFound(username)
-        elif password is PASSWORD_PLACEHOLDER or password is None:
-            ew.log(EventWriter.INFO,
-                   "Password needs to be configured for the input before it's enabled and cannot be 'encrypted'")
-            ew.log(EventWriter.INFO,
-                   "No passwords found, disabling input")
-            self.disable_input(input_without_scheme)
-            raise MailPasswordNotFound(username)
+        cred = self.get_credential()
+        if cred is not None:
+            if self.password == PASSWORD_PLACEHOLDER:
+                """Already encrypted"""
+                return cred
+            else:
+                """Update password"""
+                self.delete_password()
+                cred = self.encrypt_password()
+                self.mask_input_password()
+                return cred
         else:
-            """
-            Shouldnt reach here, I think I've captured most if not all possible outcomes above.
-            If it does, then it's worth investigating here :)
-            """
-            ew.log(EventWriter.INFO, 'Password needs to be configured for the input before it is enabled'
-                                     ' and cannot be \'encrypted\'')
-            self.disable_input(input_without_scheme)
-            raise MailPasswordNotFound(username)
-        return sp
+            if self.password == PASSWORD_PLACEHOLDER or self.password is None:
+                raise Exception("Password cannot be empty or : %s" % PASSWORD_PLACEHOLDER)
+            else:
+                cred = self.encrypt_password()
+                self.mask_input_password()
+                return cred
 
     def stream_events(self, inputs, ew):
         """This function handles all the action: splunk calls this modular input
@@ -230,59 +212,64 @@ class Mail(Script):
         :param ew: an EventWriter object
         :type ew: EventWriter
         """
-        for input_list in inputs.inputs.iteritems():
-            """This runs just once since the default self.use_single_instance = False"""
-            try:
-                input_name, input_item = input_list
-                mailserver = input_item["mailserver"]
-                email_address = input_name.split("://")[1]
-                checkpoint_dir = inputs.metadata['checkpoint_dir']
-                is_secure = bool(input_item["is_secure"])
-                protocol = input_item['protocol']
-                mailbox_cleanup = input_item['mailbox_cleanup']
-                include_headers = bool(input_item['include_headers'])
-                match = re.match(REGEX_EMAIL, str(email_address))
-                if match is None:
-                    ew.log(EventWriter.ERROR, "Modular input name must be an email address")
-                    self.disable_input(email_address)
-                    raise MailExceptionStanzaNotEmail(email_address)
-                if mailbox_cleanup is None or mailbox_cleanup == '':
-                    mailbox_cleanup = MAILBOX_CLEANUP_DEFAULTS
-                sp = self.save_password(username=email_address, input_list=input_list, ew=ew)
-                if "POP3" == protocol:
-                    mail_list = stream_pop_emails(
-                        server=mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
-                        mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
-                elif "IMAP" == protocol:
-                    mail_list = stream_imap_emails(
-                        server=mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
-                        mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
+        input_list = inputs.inputs.popitem()
+        """This runs just once since the default self.use_single_instance = False"""
+        try:
+            input_name, input_item = input_list
+            self.input_name = input_name
+            self.mailserver = input_item["mailserver"]
+            self.username = input_name.split("://")[1]
+            self.password = input_item["password"]
+            self.realm = REALM
+            is_secure = bool(input_item["is_secure"])
+            protocol = input_item['protocol']
+            mailbox_cleanup = input_item['mailbox_cleanup']
+            if mailbox_cleanup is None:
+                mailbox_cleanup = 'readonly'
+            include_headers = bool(input_item['include_headers'])
+            checkpoint_dir = inputs.metadata['checkpoint_dir']
+            match = re.match(REGEX_EMAIL, str(self.username))
+            if match is None:
+                ew.log(EventWriter.ERROR, "Modular input name must be an email address")
+                self.disable_input()
+                raise MailExceptionStanzaNotEmail(self.username)
+            if mailbox_cleanup is None or mailbox_cleanup == '':
+                mailbox_cleanup = MAILBOX_CLEANUP_DEFAULTS
+            sp = self.save_password()
+            if "POP3" == protocol:
+                mail_list = stream_pop_emails(
+                    server=self.mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
+                    mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
+            elif "IMAP" == protocol:
+                mail_list = stream_imap_emails(
+                    server=self.mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
+                    mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
+            else:
+                ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
+                self.disable_input()
+                raise MailExceptionInvalidProtocol
+            """Consider adding a checkpoint file here using the first n-characters including the date"""
+            for message_time, checkpoint_id, msg in mail_list:
+                if not locate_checkpoint(checkpoint_dir, checkpoint_id):
+                    logevent = Event(
+                        stanza=self.input_name,
+                        data=msg,
+                        host=self.mailserver,
+                        source=self.input_name,
+                        time="%.3f" % message_time
+                    )
+                    ew.write_event(logevent)
+                    save_checkpoint(checkpoint_dir, checkpoint_id)
                 else:
-                    ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
-                    self.disable_input(email_address)
-                    raise MailExceptionInvalidProtocol
-                """Consider adding a checkpoint file here using the first n-characters including the date"""
-                for message_time, checkpoint_id, msg in mail_list:
-                    if not locate_checkpoint(checkpoint_dir, checkpoint_id):
-                        logevent = Event(
-                            stanza=input_name,
-                            data=msg,
-                            host=mailserver,
-                            source=input_name,
-                            time="%.3f" % message_time
-                        )
-                        ew.write_event(logevent)
-                        save_checkpoint(checkpoint_dir, checkpoint_id)
-                    else:
-                        ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
-            except MailException as e:
-                ew.log(EventWriter.INFO, str(e))
-            except:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
-                ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)
-                ew.log(EventWriter.DEBUG,
-                       traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout))
+                    ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
+        except MailException as e:
+            ew.log(EventWriter.INFO, str(e))
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
+            ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)
+            ew.log(EventWriter.DEBUG,
+                   traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout))
 
 
 if __name__ == "__main__":
