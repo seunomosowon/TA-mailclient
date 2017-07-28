@@ -50,7 +50,7 @@ script:
   - echo "`date -u` - Checking if modular input is not broken"
   - curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/data/modular-inputs/mail &>/dev/null
   - echo "`date -u` - Checking if test modular input is not disabled"
-  - curl -s --fail -k -u admin:$RANDOM_PASSWORD https://localhost:8089/servicesNS/nobody/TA-mailclient/data/inputs/mail/pop_to_splunk@gmx.com | grep "\"disabled\">0"
+  - curl -s --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/servicesNS/nobody/TA-mailclient/data/inputs/mail/pop_to_splunk%40gmx.com | grep "\"disabled\">0"
 
   - sleep 60
   - echo "`date -u` - Check if password encryption is working"
