@@ -30,7 +30,6 @@ def get_mail_port(protocol, is_secure):
     :return: Returns the correct port for either POP3 or POP3 over SSL
     :rtype: int
     """
-    port = 0
     if is_secure:
         if protocol == 'POP3':
             port = 995
@@ -110,7 +109,7 @@ def recode_mail(part):
     if cset == "None":
         cset = "ascii"
     try:
-        if None is part.get_payload(decode=True):
+        if not part.get_payload(decode=True):
             result = u''
         else:
             result = unicode(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
@@ -131,12 +130,12 @@ def process_raw_email(raw, include_headers):
     """
     message = email.message_from_string(raw)
     mailheaders = Parser().parsestr(raw, True)
-    body = ''
-    other_headers = '\n'.join(
-        ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in (
-            'Date', 'Message-ID', 'From', 'To', 'Subject')])
+    headers = ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k in MAIN_HEADERS]
+    other_headers = []
     if include_headers:
-        body += other_headers
+        other_headers = ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in MAIN_HEADERS]
+        headers.extend(other_headers)
+    body = []
     if message.is_multipart():
         part_number = 1
         for part in message.walk():
@@ -144,64 +143,33 @@ def process_raw_email(raw, include_headers):
             content_disposition = part.get('Content-Disposition')
             if content_type in ['multipart/alternative', 'multipart/mixed']:
                 # The multipart/alternative part is usually empty.
-                body += '\n%s' % part.get_payload(decode=True)
-                # recode_mail(part)
+                body.append(part.get_payload(decode=True))
                 continue
-            body += "\n#START_OF_MULTIPART_%d\n" % part_number
-            """
-            body += "Content Disposition: %s\nContent Type: %s \n" % (repr(content_disposition) ,content_type)
-            Microsoft sometimes sends the wrong content type. : sending csv as application/octect-stream
-
-            """
-            index_attachments_flag = INDEX_ATTACHMENT_DEFAULT
+            body.append("#START_OF_MULTIPART_%d" % part_number)
             extension = str(os.path.splitext(part.get_filename() or '')[1]).lower()
-            if extension in SUPPORTED_FILE_EXTENSIONS:
-                file_is_supported_attachment = True
-            else:
-                file_is_supported_attachment = False
-            if content_type in SUPPORTED_CONTENT_TYPES or part.get_content_maintype() == 'text':
-                content_type_supported = True
-            else:
-                content_type_supported = False
-            if content_type_supported or file_is_supported_attachment:
-                if content_disposition is not None and content_disposition != '':
-                    if "attachment" in content_disposition and index_attachments_flag:
-                        """Easier to change to a flag in inputs.conf"""
-                        body += "\n#BEGIN_ATTACHMENT: %s\n" % part.get_filename()
-                        if extension == '.docx':
-                            body += read_docx(part.get_payload(decode=True))
-                        else:
-                            body += '\n' + recode_mail(part)
-
-                        body += "\n#END_ATTACHMENT: %s\n" % part.get_filename()
+            if (extension in SUPPORTED_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or
+                        part.get_content_maintype() == 'text'):
+                if "attachment" in content_disposition:
+                    body.append("#BEGIN_ATTACHMENT: %s" % part.get_filename())
+                    if extension == '.docx':
+                        body.append(read_docx(part.get_payload(decode=True)))
                     else:
-                        body += "\n%s" % recode_mail(part)
+                        body.append(recode_mail(part))
+                    body.append("#END_ATTACHMENT: %s" % part.get_filename())
                 else:
-                    body += "#MULTIPART_ALTERNATIVE_%d: %s\n" % (part_number, content_type)
-                    body += recode_mail(part)
+                    body.append(recode_mail(part))
             else:
-                body += "\n#UNSUPPORTED_ATTACHMENT: file_name = %s - type = %s ; disposition=%s\n" % (
-                    part.get_filename(), content_type, content_disposition)
-            """
-            else:
-                body += "Found unsupported message part: %s, Filename: %s" % (content_type,part.get_filename())
-            # what if we want to index images for steganalysis? - maybe add hexdump of image
-            Give the user the responsibility - add an option for user to specify supported file extensions in input?
-            """
-            body += "\n#END_OF_MULTIPART_%d\n" % part_number
+                body.append("#UNSUPPORTED_ATTACHMENT: file_name = %s - type = %s ; disposition=%s" % (
+                    part.get_filename(), content_type, content_disposition))
+
+            body.append("#END_OF_MULTIPART_%d" % part_number)
             part_number += 1
     else:
-        body = recode_mail(message)
-    mail_for_index = "%s" \
-                     "Date: %s\n" \
-                     "Message-ID: %s\n" \
-                     "From: %s\n" \
-                     "Subject: %s\n" \
-                     "To: %s\n" \
-                     "Body: %s\n" % (MESSAGE_PREAMBLE, message['Date'], message['Message-ID'],
-                                     message['From'], getheader(message['Subject']), message['To'], body)
+        body.append(recode_mail(message))
+    mail_for_index = [MESSAGE_PREAMBLE]
+    mail_for_index.extend(headers + other_headers + body)
     message_time = float(mktime_tz(parsedate_tz(message['Date'])))
-    return [message_time, message['Message-ID'], mail_for_index]
+    return [message_time, message['Message-ID'], "\n".join(mail_for_index)]
 
 
 def save_checkpoint(checkpoint_dir, msg):
