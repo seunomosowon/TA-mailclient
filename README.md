@@ -30,7 +30,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.1.0 |
+| App Version | 1.1.1 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -77,7 +77,7 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.1.0 of the TA-mailclient is compatible with:
+Version 1.1.1 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 6.x |
 | --- | --- |
@@ -106,10 +106,11 @@ TA-mailclient includes the following new features:
 - Fix loading local exceptions
 - modularized storage/password functions to make them reusable and simpler
 - Also fixed exception handling when dealing with storage/password
+- Fixed type casting for boolean parameters (is\_secure, include\_headers)
 
 ##### Known issues
 
-Currently no known issues in version 1.1.0 of TA-mailclient.
+Currently no known issues in version 1.1.1 of TA-mailclient.
 This is currently tested against the latest version of Splunk Enterprise.
 Issues can be reported and tracked on Github at this time.
 
