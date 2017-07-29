@@ -143,19 +143,19 @@ def process_raw_email(raw, include_headers):
             content_disposition = part.get('Content-Disposition')
             if content_type in ['multipart/alternative', 'multipart/mixed']:
                 # The multipart/alternative part is usually empty.
-                body.append(part.get_payload(decode=True))
+                body.append("Multipart envelope header: %s" % str(part.get_payload(decode=True)))
                 continue
             body.append("#START_OF_MULTIPART_%d" % part_number)
             extension = str(os.path.splitext(part.get_filename() or '')[1]).lower()
             if (extension in SUPPORTED_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or
                         part.get_content_maintype() == 'text'):
-                if "attachment" in content_disposition:
-                    body.append("#BEGIN_ATTACHMENT: %s" % part.get_filename())
+                if part.get_filename():
+                    body.append("#BEGIN_ATTACHMENT: %s" % str(part.get_filename()))
                     if extension == '.docx':
                         body.append(read_docx(part.get_payload(decode=True)))
                     else:
                         body.append(recode_mail(part))
-                    body.append("#END_ATTACHMENT: %s" % part.get_filename())
+                    body.append("#END_ATTACHMENT: %s" % str(part.get_filename()))
                 else:
                     body.append(recode_mail(part))
             else:
@@ -167,7 +167,7 @@ def process_raw_email(raw, include_headers):
     else:
         body.append(recode_mail(message))
     mail_for_index = [MESSAGE_PREAMBLE]
-    mail_for_index.extend(headers + other_headers + body)
+    mail_for_index.extend(headers + body)
     message_time = float(mktime_tz(parsedate_tz(message['Date'])))
     return [message_time, message['Message-ID'], "\n".join(mail_for_index)]
 

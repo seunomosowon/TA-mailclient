@@ -21,4 +21,4 @@ SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/
 SUPPORTED_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.docx'}
 MAILBOX_CLEANUP_DEFAULTS = 'readonly'
 MESSAGE_PREAMBLE = "VGhpcyBpcyBhIG1haWwgc2VwYXJhdG9yIGluIGJhc2U2NCBmb3Igb3VyIFNwbHVuayBpbmRleGluZwo=\n"
-MAIN_HEADERS = ('Date', 'Message-ID', 'From', 'To', 'Subject')
+MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
