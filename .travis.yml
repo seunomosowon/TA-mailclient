@@ -53,6 +53,8 @@ script:
   - echo "`date -u` - Check if a test mail was pulled"
   - for i in `seq 0 5 25`; do echo "Waited $i seconds for pop3 results" ;
     if curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=main sourcetype=mail* | table _time sourcetype source _raw" -d output_mode=csv -d earliest="-365d" -d latest=now ; then break; fi; sleep 5; done
+    echo
+    - curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=_internal sourcetype=splunkd (component=ModularInputs OR component=ExecProcessor) mail.py | table _time raw" -d output_mode=csv -d earliest="-365d" -d latest=now
 
 env:
     # - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
