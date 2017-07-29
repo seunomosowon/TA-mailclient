@@ -1,7 +1,5 @@
 """This contains exceptions defined for the Mail scheme"""
 
-from urllib2 import HTTPError
-
 
 class MailException(Exception):
     """

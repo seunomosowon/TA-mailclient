@@ -122,7 +122,7 @@ class Mail(Script):
                       mailbox_cleanup=tmp_input.mailbox_cleanup, include_headers=tmp_input.include_headers)
         try:
             tmp_input.update(**kwargs).refresh()
-        except HTTPError, e:
+        except Exception, e:
             self.disable_input()
             raise MailPasswordEncryptException(e)
 
@@ -173,7 +173,7 @@ class Mail(Script):
         :return: Returns the disabled input
         :rtype: Entity
         """
-        self.service.inputs[self.input_name].disable()
+        self.service.inputs[self.username].disable()
 
     def save_password(self):
         """
