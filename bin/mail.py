@@ -7,8 +7,9 @@ import traceback
 from mail_lib.imap_utils import *
 from mail_lib.pop_utils import *
 from splunklib.modularinput import *
+import sys
 
-#
+
 # Define global variables
 __author__ = 'seunomosowon'
 
@@ -124,7 +125,7 @@ class Mail(Script):
             tmp_input.update(**kwargs).refresh()
         except Exception, e:
             self.disable_input()
-            raise MailPasswordEncryptException(e)
+            raise Exception("Error updating inputs.conf - %s" % e)
 
     def get_credential(self):
         """
@@ -224,8 +225,6 @@ class Mail(Script):
             is_secure = bool(input_item["is_secure"])
             protocol = input_item['protocol']
             mailbox_cleanup = input_item['mailbox_cleanup']
-            if mailbox_cleanup is None:
-                mailbox_cleanup = 'readonly'
             include_headers = bool(input_item['include_headers'])
             checkpoint_dir = inputs.metadata['checkpoint_dir']
             match = re.match(REGEX_EMAIL, str(self.username))
@@ -264,7 +263,8 @@ class Mail(Script):
                     ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
         except MailException as e:
             ew.log(EventWriter.INFO, str(e))
-        except:
+        except HTTPError:
+            """Catch most exceptions from the sdk - usually due to permissions"""
             exc_type, exc_value, exc_traceback = sys.exc_info()
             ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
             ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)

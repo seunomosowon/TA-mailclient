@@ -39,11 +39,11 @@ def stream_pop_emails(server, is_secure, credential, checkpoint_dir,
             mailclient = poplib.POP3_SSL(host=server, port=get_mail_port(protocol=protocol, is_secure=is_secure))
         else:
             mailclient = poplib.POP3(host=server, port=get_mail_port(protocol=protocol, is_secure=is_secure))
-    except socket.error, e:
+    except (socket.error, SSLError) as e:
         raise MailConnectionError(e)
     except poplib.error_proto, e:
         """Some kind of poplib exception: EOF or other"""
-        raise MailPoplibError(str(e))
+        raise MailProtocolError(str(e))
     try:
         mailclient.user(credential.username)
         mailclient.pass_(credential.clear_password)

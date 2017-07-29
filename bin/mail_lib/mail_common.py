@@ -4,7 +4,6 @@ This includes common functions that are required when dealing with mails
 import email
 import hashlib
 import os
-import sys
 import socket
 import zipfile
 from email.header import decode_header
