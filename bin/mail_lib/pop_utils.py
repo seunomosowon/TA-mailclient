@@ -35,7 +35,7 @@ def stream_pop_emails(server, is_secure, credential, checkpoint_dir,
     fetched_mail = []
     protocol = 'POP3'
     try:
-        if is_secure is True:
+        if is_secure:
             mailclient = poplib.POP3_SSL(host=server, port=get_mail_port(protocol=protocol, is_secure=is_secure))
         else:
             mailclient = poplib.POP3(host=server, port=get_mail_port(protocol=protocol, is_secure=is_secure))

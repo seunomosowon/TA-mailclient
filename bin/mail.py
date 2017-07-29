@@ -222,10 +222,10 @@ class Mail(Script):
             self.username = input_name.split("://")[1]
             self.password = input_item["password"]
             self.realm = REALM
-            is_secure = bool(input_item["is_secure"])
+            is_secure = bool(int(input_item["is_secure"]))
             protocol = input_item['protocol']
             mailbox_cleanup = input_item['mailbox_cleanup']
-            include_headers = bool(input_item['include_headers'])
+            include_headers = bool(int(input_item['include_headers']))
             checkpoint_dir = inputs.metadata['checkpoint_dir']
             match = re.match(REGEX_EMAIL, str(self.username))
             if match is None:

@@ -31,14 +31,14 @@ def get_mail_port(protocol, is_secure):
     :rtype: int
     """
     port = 0
-    if is_secure is True:
+    if is_secure:
         if protocol == 'POP3':
             port = 995
         elif 'IMAP' == protocol:
             port = 993
         else:
             raise MailException("Invalid options passed to get_mail_port")
-    elif is_secure is False:
+    else:
         if protocol == 'POP3':
             port = 110
         elif protocol == 'IMAP':
