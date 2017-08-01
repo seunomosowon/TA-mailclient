@@ -110,7 +110,7 @@ TA-mailclient includes the following new features:
 - modularized storage/password functions to make them reusable and simpler
 - Also fixed exception handling when dealing with storage/password
 - Fixed type casting for boolean parameters (is\_secure, include\_headers)
-- Rewrote sections of mail_common
+- Rewrote sections of mail\_common
 
 ##### Known issues
 

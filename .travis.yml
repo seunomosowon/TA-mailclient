@@ -36,7 +36,7 @@ install:
   - echo "`date -u` - Installing TA"
   - docker cp $TRAVIS_BUILD_DIR autobuild_$SPLKMGMT:/opt/splunk/etc/apps/
   - docker exec autobuild_$SPLKMGMT mkdir /opt/splunk/etc/apps/TA-mailclient/local/
-  - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://pop_to_splunk@gmx.com]\npassword=$MB_PASSWD\nprotocol = $PROTO\ndisabled = 0\nhost = $MAILSERVER\ninclude_headers = 0\ninterval = 30\nis_secure = $IS_SECURE\nmailbox_cleanup = readonly\nmailserver = $MAILSERVER\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
+  - docker exec autobuild_$SPLKMGMT bash -c "echo -e '[mail://$EMAIL_ACCOUNT]\npassword=$MB_PASSWD\nprotocol = $PROTO\ndisabled = 0\nhost = $MAILSERVER\ninclude_headers = 0\ninterval = 30\nis_secure = $IS_SECURE\nmailbox_cleanup = readonly\nmailserver = $MAILSERVER\nsourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
   - docker exec autobuild_$SPLKMGMT chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/ 
   - echo "`date -u` - Restarting splunk"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk restart
@@ -62,7 +62,7 @@ script:
 
 env:
     # - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900
-    - SPLUNK_VERSION=latest SPLKMGMT=9900 IS_SECURE=0 MAILSERVER=pop.gmx.com PROTO=POP3
-    - SPLUNK_VERSION=latest SPLKMGMT=9901 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3
-    - SPLUNK_VERSION=latest SPLKMGMT=9902 IS_SECURE=0 MAILSERVER=imap.gmx.com PROTO=IMAP
-    - SPLUNK_VERSION=latest SPLKMGMT=9903 IS_SECURE=1 MAILSERVER=imap.gmx.com PROTO=IMAP
+    - SPLUNK_VERSION=latest SPLKMGMT=9900 IS_SECURE=0 MAILSERVER=pop.aol.com PROTO=POP3 EMAIL_ACCOUNT=pop_to_splunk@aol.com
+    - SPLUNK_VERSION=latest SPLKMGMT=9901 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3 EMAIL_ACCOUNT=pop_to_splunk@gmx.com
+    - SPLUNK_VERSION=latest SPLKMGMT=9902 IS_SECURE=0 MAILSERVER=imap.aol.com PROTO=IMAP EMAIL_ACCOUNT=pop_to_splunk@aol.com
+    - SPLUNK_VERSION=latest SPLKMGMT=9903 IS_SECURE=1 MAILSERVER=imap.gmx.com PROTO=IMAP EMAIL_ACCOUNT=pop_to_splunk@gmx.com
