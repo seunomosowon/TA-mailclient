@@ -92,8 +92,7 @@ This app already includes several extractions for different parts of the message
 This app will not work on a universal forwarder,
 as it requires Python which comes with an HF or a full Splunk install.
 
-Note: GMX doesnt support POP3/IMAP without SSL so even thought the tests pass, you see an error about not being able to login.
-But it works, as I've tested and captured packets to confirm. only the secure tests retrieve mails on Travis CI.
+**Note:** Travis CI includes tests for both secure and insecure versions of POP3 / IMAP. 
 
 ##### New features
 
