@@ -110,6 +110,7 @@ TA-mailclient includes the following new features:
 - Also fixed exception handling when dealing with storage/password
 - Fixed type casting for boolean parameters (is\_secure, include\_headers)
 - Rewrote sections of mail\_common
+- Fixed bool parameter for mail port validation for insecure protocols
 
 ##### Known issues
 
