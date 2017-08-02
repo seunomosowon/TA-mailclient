@@ -105,7 +105,7 @@ class Mail(Script):
         If validate_input does not raise an Exception, the input is assumed to be valid.
         """
         mailserver = validation_definition.parameters["mailserver"]
-        is_secure = bool(validation_definition.parameters["is_secure"])
+        is_secure = bool(int(validation_definition.parameters["is_secure"]))
         protocol = validation_definition.parameters["protocol"]
         email_address = validation_definition.metadata["name"]
         match = re.match(REGEX_EMAIL, email_address)
