@@ -268,7 +268,7 @@ class Mail(Script):
                             num += 1
                     mailclient.close()
                     mailclient.logout()
-        self.log(EventWriter.INFO, "IMAP debug: \n\t%s" % "\n".join(output))
+        self.log(EventWriter.INFO, "\n".join(["IMAP debug: " + s for s in output]))
         return fetched_mail
 
     def stream_pop_emails(self):
@@ -291,8 +291,8 @@ class Mail(Script):
         try:
             mailclient.set_debuglevel(2)
             self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
-            self.log(EventWriter.INFO, mailclient.user(credential.username))
-            self.log(EventWriter.INFO, mailclient.pass_(credential.clear_password))
+            self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.user(credential.username))
+            self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.pass_(credential.clear_password))
         except poplib.error_proto:
             raise MailLoginFailed(self.mailserver, credential.username)
         (num_of_messages, totalsize) = mailclient.stat()
