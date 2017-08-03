@@ -2,13 +2,12 @@
 
 # import libraries required
 import re
-import traceback
-
-from mail_lib.imap_utils import *
-from mail_lib.pop_utils import *
+from ssl import SSLError
 from splunklib.modularinput import *
 import sys
-
+import poplib
+import imaplib
+from mail_lib.mail_common import *
 
 # Define global variables
 __author__ = 'seunomosowon'
@@ -22,6 +21,7 @@ class Mail(Script):
     """
     APP = __file__.split(os.sep)[-3]
 
+    # noinspection PyShadowingNames
     def get_scheme(self):
         """This overrides the super method from the parent class"""
         scheme = Scheme("Mail Server")
@@ -99,6 +99,7 @@ class Mail(Script):
         scheme.add_argument(include_headers)
         return scheme
 
+    # noinspection PyShadowingNames
     def validate_input(self, validation_definition):
         """
         We are using external validation to check if the server is indeed a POP3 server.
@@ -106,10 +107,11 @@ class Mail(Script):
         """
         mailserver = validation_definition.parameters["mailserver"]
         is_secure = bool(int(validation_definition.parameters["is_secure"]))
+        include_headers = bool(int(validation_definition.parameters['include_headers']))
         protocol = validation_definition.parameters["protocol"]
         email_address = validation_definition.metadata["name"]
         match = re.match(REGEX_EMAIL, email_address)
-        if match is None:
+        if not match:
             raise MailExceptionStanzaNotEmail(email_address)
         mail_connectivity_test(server=mailserver, protocol=protocol, is_secure=is_secure)
 
@@ -183,16 +185,18 @@ class Mail(Script):
          :rtype: StoragePassword
         """
         cred = self.get_credential()
-        if cred is not None:
+        if cred:
             if self.password == PASSWORD_PLACEHOLDER:
                 """Already encrypted"""
                 return cred
-            else:
+            elif self.password:
                 """Update password"""
                 self.delete_password()
                 cred = self.encrypt_password()
                 self.mask_input_password()
                 return cred
+            else:
+                raise Exception("Password cannot be empty")
         else:
             if self.password == PASSWORD_PLACEHOLDER or self.password is None:
                 raise Exception("Password cannot be empty or : %s" % PASSWORD_PLACEHOLDER)
@@ -200,6 +204,111 @@ class Mail(Script):
                 cred = self.encrypt_password()
                 self.mask_input_password()
                 return cred
+
+    def stream_imap_emails(self):
+        """
+        :return: This returns a list of the messages retrieved via IMAP
+        :rtype: list
+        """
+        # Define local variables
+        credential = self.get_credential()
+        fetched_mail = []
+
+        if self.is_secure is True:
+            mailclient = imaplib.IMAP4_SSL(self.mailserver)
+        else:
+            mailclient = imaplib.IMAP4(self.mailserver)
+        try:
+            mailclient.login(credential.username, credential.clear_password)
+        except imaplib.IMAP4.error:
+            raise MailLoginFailed(self.mailserver, credential.username)
+        except (socket.error, SSLError) as e:
+            raise MailConnectionError(e)
+        mailclient.list()
+        if self.mailbox_cleanup == 'delete' or self.mailbox_cleanup == 'delayed':
+            imap_readonly_flag = False
+        else:
+            imap_readonly_flag = IMAP_READONLY_FLAG
+        """
+        Might want to iterate over all the child folders of inbox in future version
+        And Extend the choise of having this readonly, so mails are saved in mailbox.
+        Need to move all this into a controller object that can work on email.Message.Message
+        """
+        mailclient.select('inbox', readonly=imap_readonly_flag)
+        status, data = mailclient.uid('search', None, 'ALL')
+        if status == 'OK':
+            email_ids = data[0].split()
+            num_of_messages = len(email_ids)
+            if num_of_messages > 0:
+                num = 0
+                mails_retrieved = 0
+                while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
+                    result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
+                    raw_email = email_data[0][1]
+                    formatted_email = process_raw_email(raw_email, self.include_headers)
+                    mid = formatted_email[1]
+                    if locate_checkpoint(self.checkpoint_dir, mid) and (
+                                    self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                        mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                        # if not locate_checkpoint(...): then message deletion has been delayed until next run
+                    else:
+                        fetched_mail.append(formatted_email)
+                        mails_retrieved += 1
+                    if self.mailbox_cleanup == 'delete':
+                        mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                    num += 1
+                mailclient.expunge()
+                mailclient.close()
+                mailclient.logout()
+        return fetched_mail
+
+    def stream_pop_emails(self):
+        """
+        :return: This returns a list of the messages retrieved via POP3
+        :rtype: list
+        """
+        fetched_mail = []
+        credential = self.get_credential()
+        try:
+            if self.is_secure:
+                mailclient = poplib.POP3_SSL(host=self.mailserver,
+                                             port=get_mail_port(protocol=self.protocol, is_secure=self.is_secure))
+            else:
+                mailclient = poplib.POP3(host=self.mailserver,
+                                         port=get_mail_port(protocol=self.protocol, is_secure=self.is_secure))
+        except (socket.error, SSLError) as e:
+            raise MailConnectionError(e)
+        except poplib.error_proto, e:
+            """Some kind of poplib exception: EOF or other"""
+            raise MailProtocolError(str(e))
+        try:
+            mailclient.set_debuglevel(2)
+            self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
+            self.log(EventWriter.INFO, mailclient.user(credential.username))
+            self.log(EventWriter.INFO, mailclient.pass_(credential.clear_password))
+        except poplib.error_proto:
+            raise MailLoginFailed(self.mailserver, credential.username)
+        (num_of_messages, totalsize) = mailclient.stat()
+        if num_of_messages > 0:
+            num = 0
+            mails_retrieved = 0
+            while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
+                num += 1
+                (header, msg, octets) = mailclient.retr(num)
+                raw_email = '\n'.join(msg)
+                formatted_email = process_raw_email(raw_email, self.include_headers)
+                mid = formatted_email[1]
+                if not locate_checkpoint(self.checkpoint_dir, mid):
+                    """Append the mail if it is readonly or if the mail will be deleted"""
+                    fetched_mail.append(formatted_email)
+                    mails_retrieved += 1
+                    if self.mailbox_cleanup == 'delete':
+                        mailclient.dele(num)
+                elif locate_checkpoint(self.checkpoint_dir, mid) and (
+                                self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                    mailclient.dele(num)
+            self.log(EventWriter.INFO, mailclient.quit())
+        return fetched_mail
 
     def stream_events(self, inputs, ew):
         """This function handles all the action: splunk calls this modular input
@@ -222,34 +331,32 @@ class Mail(Script):
             self.username = input_name.split("://")[1]
             self.password = input_item["password"]
             self.realm = REALM
-            is_secure = bool(int(input_item["is_secure"]))
-            protocol = input_item['protocol']
-            mailbox_cleanup = input_item['mailbox_cleanup']
-            include_headers = bool(int(input_item['include_headers']))
-            checkpoint_dir = inputs.metadata['checkpoint_dir']
+            self.protocol = input_item['protocol']
+            self.checkpoint_dir = inputs.metadata['checkpoint_dir']
+            self.log = ew.log
+            if not input_item['mailbox_cleanup']:
+                self.mailbox_cleanup = input_item['mailbox_cleanup']
+            if input_item['include_headers'] is not None:
+                self.include_headers = bool(int(input_item['include_headers']))
+            if input_item['is_secure'] is not None:
+                self.is_secure = bool(int(input_item["is_secure"]))
             match = re.match(REGEX_EMAIL, str(self.username))
             if match is None:
                 ew.log(EventWriter.ERROR, "Modular input name must be an email address")
                 self.disable_input()
                 raise MailExceptionStanzaNotEmail(self.username)
-            if mailbox_cleanup is None or mailbox_cleanup == '':
-                mailbox_cleanup = MAILBOX_CLEANUP_DEFAULTS
-            sp = self.save_password()
-            if "POP3" == protocol:
-                mail_list = stream_pop_emails(
-                    server=self.mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
-                    mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
-            elif "IMAP" == protocol:
-                mail_list = stream_imap_emails(
-                    server=self.mailserver, is_secure=is_secure, credential=sp, checkpoint_dir=checkpoint_dir,
-                    mailbox_mgmt=mailbox_cleanup, include_headers=include_headers)
+            self.save_password()
+            if "POP3" == self.protocol:
+                mail_list = self.stream_pop_emails()
+            elif "IMAP" == self.protocol:
+                mail_list = self.stream_imap_emails()
             else:
                 ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
                 self.disable_input()
                 raise MailExceptionInvalidProtocol
             """Consider adding a checkpoint file here using the first n-characters including the date"""
-            for message_time, checkpoint_id, msg in mail_list:
-                if not locate_checkpoint(checkpoint_dir, checkpoint_id):
+            for message_time, checkpoint_mid, msg in mail_list:
+                if not locate_checkpoint(self.checkpoint_dir, checkpoint_mid):
                     logevent = Event(
                         stanza=self.input_name,
                         data=msg,
@@ -258,18 +365,25 @@ class Mail(Script):
                         time="%.3f" % message_time
                     )
                     ew.write_event(logevent)
-                    save_checkpoint(checkpoint_dir, checkpoint_id)
+                    save_checkpoint(self.checkpoint_dir, checkpoint_mid)
                 else:
                     ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
         except MailException as e:
             ew.log(EventWriter.INFO, str(e))
-        except HTTPError:
-            """Catch most exceptions from the sdk - usually due to permissions"""
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            ew.log(EventWriter.DEBUG, repr(traceback.format_tb(exc_traceback)))
-            ew.log(EventWriter.DEBUG, "*** traceback_lineno: %s" % exc_traceback.tb_lineno)
-            ew.log(EventWriter.DEBUG,
-                   traceback.print_exception(exc_type, exc_value, exc_traceback, limit=2, file=sys.stdout))
+
+    def __init__(self):
+        super(Mail, self).__init__()
+        self.input_name = "xyz@abc.com"
+        self.mailserver = "a.b.c.d"
+        self.username = "xyz@abc.com"
+        self.password = "xyz@abc.com"
+        self.realm = REALM
+        self.protocol = "POP3"
+        self.checkpoint_dir = ""
+        self.log = EventWriter.log
+        self.include_headers = INDEX_ATTACHMENT_DEFAULT
+        self.mailbox_cleanup = "readonly"
+        self.is_secure = INDEX_ATTACHMENT_DEFAULT
 
 
 if __name__ == "__main__":

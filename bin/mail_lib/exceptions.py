@@ -1,10 +1,6 @@
 """This contains exceptions defined for the Mail scheme"""
 
 
-from urllib2 import HTTPError
-from ssl import SSLError
-
-
 class MailException(Exception):
     """
     Exception raised for errors in the mail modular input.

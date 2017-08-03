@@ -7,6 +7,7 @@ import os
 import socket
 import zipfile
 from email.header import decode_header
+# noinspection PyUnresolvedReferences
 from email.Parser import Parser
 from email.utils import mktime_tz, parsedate_tz
 from xml.dom.minidom import parse as parsexml
@@ -131,7 +132,6 @@ def process_raw_email(raw, include_headers):
     message = email.message_from_string(raw)
     mailheaders = Parser().parsestr(raw, True)
     headers = ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k in MAIN_HEADERS]
-    other_headers = []
     if include_headers:
         other_headers = ["%s: %s" % (k, getheader(v)) for k, v in mailheaders.items() if k not in MAIN_HEADERS]
         headers.extend(other_headers)
@@ -148,7 +148,7 @@ def process_raw_email(raw, include_headers):
             body.append("#START_OF_MULTIPART_%d" % part_number)
             extension = str(os.path.splitext(part.get_filename() or '')[1]).lower()
             if (extension in SUPPORTED_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or
-                        part.get_content_maintype() == 'text'):
+                    part.get_content_maintype() == 'text'):
                 if part.get_filename():
                     body.append("#BEGIN_ATTACHMENT: %s" % str(part.get_filename()))
                     if extension == '.docx':
