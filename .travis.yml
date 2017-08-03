@@ -58,7 +58,7 @@ script:
     if curl -s --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=main sourcetype=mail* | table _time sourcetype source _raw" -d output_mode=raw -d earliest="-365d" -d latest=now ;
     then break; fi; sleep 5; done
   - echo "Check internal logs for Execprocessor events"
-  - curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=_internal sourcetype=splunkd (component=ModularInputs OR component=ExecProcessor) mail.py | head 10 | table _time _raw" -d output_mode=csv -d earliest="-1h" -d latest=now
+  - curl --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=_internal sourcetype=splunkd (component=ModularInputs OR component=ExecProcessor) mail.py | head 20 | table _time _raw" -d output_mode=csv -d earliest="-1h" -d latest=now
 
 env:
     # - SPLUNK_VERSION=6.6.1 SPLKMGMT=9900

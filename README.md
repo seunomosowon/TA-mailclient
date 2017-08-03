@@ -68,8 +68,6 @@ Images, videos and executables are not indexed.
 Includes:
 - Splunk SDK for Python (1.6.2)
 - mail_lib - supports the calculation of vincenty distances which is used by default
-    - pop_utils.py - functions used to retrieve mails via POP3 using the built-in poplib library
-    - imap_utils.py - functions used to retrieve mails via IMAP using the built-in imaplib library
     - constants.py - A number of constants / defaults used throughout the mail_lib module.
     - mail_common.py - Shared functions used to parse emails and attachments
     - exceptions raised by functions used in the mail_lib module.
@@ -111,6 +109,7 @@ TA-mailclient includes the following new features:
 - Fixed type casting for boolean parameters (is\_secure, include\_headers)
 - Rewrote sections of mail\_common
 - Fixed bool parameter for mail port validation for insecure protocols
+- Merged functions from poputils/imaputils into main code and added additional logs from connection
 
 ##### Known issues
 

@@ -315,8 +315,7 @@ class Mail(Script):
                 elif locate_checkpoint(self.checkpoint_dir, mid) and (
                                 self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                     mailclient.dele(num)
-            self.log(EventWriter.INFO, mailclient.quit())
-        #mailclient.quit() - causes stderr POP3_SSL instance has no attribute 'sslobj'
+            self.log(EventWriter.INFO, "POP3 log: %s" %mailclient.quit())
         return fetched_mail
 
     def stream_events(self, inputs, ew):
