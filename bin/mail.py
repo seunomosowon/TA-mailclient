@@ -118,12 +118,11 @@ class Mail(Script):
         """
         This encrypts the password stored in inputs.conf for the input name passed as an argument.
         """
-        tmp_input = self.service.inputs[self.username]
-        kwargs = dict(host=tmp_input.mailserver, password=PASSWORD_PLACEHOLDER, mailserver=tmp_input.mailserver,
-                      is_secure=tmp_input.is_secure, protocol=tmp_input.protocol,
-                      mailbox_cleanup=tmp_input.mailbox_cleanup, include_headers=tmp_input.include_headers)
+        kwargs = dict(host=self.mailserver, password=PASSWORD_PLACEHOLDER, mailserver=self.mailserver,
+                      is_secure=self.is_secure, protocol=self.protocol,
+                      mailbox_cleanup=self.mailbox_cleanup, include_headers=self.include_headers)
         try:
-            tmp_input.update(**kwargs).refresh()
+            self.service.inputs[self.username].update(**kwargs).refresh()
         except Exception, e:
             self.disable_input()
             raise Exception("Error updating inputs.conf - %s" % e)
@@ -292,30 +291,36 @@ class Mail(Script):
             mailclient.set_debuglevel(2)
             self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
             self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.user(credential.username))
+            mailclient.set_debuglevel(1)
             self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.pass_(credential.clear_password))
         except poplib.error_proto:
             raise MailLoginFailed(self.mailserver, credential.username)
-        (num_of_messages, totalsize) = mailclient.stat()
-        if num_of_messages > 0:
-            num = 0
-            mails_retrieved = 0
-            while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
-                num += 1
-                """Can capture output of next command to debug if requested, but it'll contain full mail"""
-                (header, msg, octets) = mailclient.retr(num)
-                raw_email = '\n'.join(msg)
-                formatted_email = process_raw_email(raw_email, self.include_headers)
-                mid = formatted_email[1]
-                if not locate_checkpoint(self.checkpoint_dir, mid):
-                    """Append the mail if it is readonly or if the mail will be deleted"""
-                    fetched_mail.append(formatted_email)
-                    mails_retrieved += 1
-                    if self.mailbox_cleanup == 'delete':
+        mailclient.set_debuglevel(2)
+        num = 0
+        mails_retrieved = 0
+        with Capturing() as output:
+            (num_of_messages, totalsize) = mailclient.stat()
+            if num_of_messages > 0:
+                while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
+                    num += 1
+                    (header, msg, octets) = mailclient.retr(num)
+                    # fetched_mail.append(header + '\n'.join(msg))
+                    raw_email = '\n'.join(msg)
+                    formatted_email = process_raw_email(raw_email, self.include_headers)
+                    email_id = formatted_email[1]
+                    if not locate_checkpoint(self.checkpoint_dir, email_id):
+                        """Append the mail if it is readonly or if the mail will be deleted"""
+                        fetched_mail.append(formatted_email)
+                        mails_retrieved += 1
+                        if self.mailbox_cleanup == 'delete':
+                            mailclient.dele(num)
+                    elif locate_checkpoint(self.checkpoint_dir, email_id) and (
+                                    self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                         mailclient.dele(num)
-                elif locate_checkpoint(self.checkpoint_dir, mid) and (
-                                self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
-                    mailclient.dele(num)
-            self.log(EventWriter.INFO, "POP3 log: %s" %mailclient.quit())
+                mailclient.quit()
+            mailclient.set_debuglevel(1)
+            self.log(EventWriter.DEBUG, "POP3 debug: %s" % "\n".join(["POP3 debug: " + s for s in output]))
+            self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
         return fetched_mail
 
     def stream_events(self, inputs, ew):
@@ -344,6 +349,7 @@ class Mail(Script):
             self.is_secure = bool_variable(input_item["is_secure"])
             self.checkpoint_dir = inputs.metadata['checkpoint_dir']
             self.log = ew.log
+
             if not input_item['mailbox_cleanup']:
                 self.mailbox_cleanup = input_item['mailbox_cleanup']
             match = re.match(REGEX_EMAIL, str(self.username))
@@ -361,19 +367,21 @@ class Mail(Script):
                 self.disable_input()
                 raise MailExceptionInvalidProtocol
             """Consider adding a checkpoint file here using the first n-characters including the date"""
-            for message_time, checkpoint_mid, msg in mail_list:
-                if not locate_checkpoint(self.checkpoint_dir, checkpoint_mid):
-                    logevent = Event(
-                        stanza=self.input_name,
-                        data=msg,
-                        host=self.mailserver,
-                        source=self.input_name,
-                        time="%.3f" % message_time
-                    )
-                    ew.write_event(logevent)
-                    save_checkpoint(self.checkpoint_dir, checkpoint_mid)
-                else:
-                    ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
+            for message_time, message_mid, msg in mail_list:
+                    if not locate_checkpoint(self.checkpoint_dir, message_mid):
+                        logevent = Event(
+                            stanza=self.input_name,
+                            data=msg,
+                            host=self.mailserver,
+                            source=self.input_name,
+                            time="%.3f" % message_time,
+                            done=True,
+                            unbroken=True
+                        )
+                        ew.write_event(logevent)
+                        save_checkpoint(self.checkpoint_dir, message_mid)
+                    else:
+                        ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
         except MailException as e:
             ew.log(EventWriter.INFO, str(e))
 

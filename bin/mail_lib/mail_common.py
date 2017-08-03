@@ -15,6 +15,7 @@ import sys
 from .constants import *
 from .exceptions import *
 
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -179,10 +180,12 @@ def process_raw_email(raw, include_headers):
             part_number += 1
     else:
         body.append(recode_mail(message))
-    mail_for_index = [MESSAGE_PREAMBLE]
+    """mail_for_index = [MESSAGE_PREAMBLE]"""
+    mail_for_index = []
     mail_for_index.extend(headers + body)
+    index_mail = "\n".join(mail_for_index)
     message_time = float(mktime_tz(parsedate_tz(message['Date'])))
-    return [message_time, message['Message-ID'], "\n".join(mail_for_index)]
+    return [message_time, message['Message-ID'], index_mail]
 
 
 def save_checkpoint(checkpoint_dir, msg):
