@@ -11,7 +11,7 @@ from email.header import decode_header
 from email.Parser import Parser
 from email.utils import mktime_tz, parsedate_tz
 from xml.dom.minidom import parse as parsexml
-
+import sys
 from .constants import *
 from .exceptions import *
 
@@ -21,12 +21,26 @@ except ImportError:
     from StringIO import StringIO
 
 
+class Capturing(list):
+    """ Thanks to Kindall and other examples on stackoverflow """
+
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio  # free up some memory
+        sys.stdout = self._stdout
+
+
 def get_mail_port(protocol, is_secure):
     """
     This returns the server port to use for POP retrieval of mails
     :param protocol: The protocol to be used to fetch emails - IMAP or POP3
     :type protocol: basestring
-    :param is_secure: Determines if the mails should be fetced over SSL
+    :param is_secure: Determines if the mails should be fetched over SSL
     :type is_secure: bool
     :return: Returns the correct port for either POP3 or POP3 over SSL
     :rtype: int
@@ -121,7 +135,7 @@ def recode_mail(part):
 
 def process_raw_email(raw, include_headers):
     """
-    This fundtion takes an email in plain text form and preformats it with limited headers.
+    This function takes an email in plain text form and preformats it with limited headers.
     :param raw: This represents the email in a bytearray to be processed
     :type raw: basestring
     :param include_headers: This parameter specifies if all headers should be included.
@@ -147,8 +161,8 @@ def process_raw_email(raw, include_headers):
                 continue
             body.append("#START_OF_MULTIPART_%d" % part_number)
             extension = str(os.path.splitext(part.get_filename() or '')[1]).lower()
-            if (extension in SUPPORTED_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or
-                    part.get_content_maintype() == 'text'):
+            if extension in SUPPORTED_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or \
+               part.get_content_maintype() == 'text':
                 if part.get_filename():
                     body.append("#BEGIN_ATTACHMENT: %s" % str(part.get_filename()))
                     if extension == '.docx':
@@ -161,7 +175,6 @@ def process_raw_email(raw, include_headers):
             else:
                 body.append("#UNSUPPORTED_ATTACHMENT: file_name = %s - type = %s ; disposition=%s" % (
                     part.get_filename(), content_type, content_disposition))
-
             body.append("#END_OF_MULTIPART_%d" % part_number)
             part_number += 1
     else:
@@ -202,3 +215,15 @@ def locate_checkpoint(checkpoint_dir, msg):
     except (OSError, IOError):
         return False
     return True
+
+
+def bool_variable(x):
+    if x == "enabled":
+        x = True
+    elif x == "disabled":
+        x = False
+    elif x is "1" or x is "0":
+        x = bool(int(x))
+    else:
+        x = bool(int(1))
+    return x

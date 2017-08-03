@@ -4,10 +4,10 @@
 import re
 from ssl import SSLError
 from splunklib.modularinput import *
-import sys
 import poplib
 import imaplib
 from mail_lib.mail_common import *
+
 
 # Define global variables
 __author__ = 'seunomosowon'
@@ -66,7 +66,7 @@ class Mail(Script):
             required_on_edit=True,
             required_on_create=True
         )
-        # bool arguments dont display description
+        # bool arguments don't display description
         scheme.add_argument(is_secure)
         password = Argument(
             name="password",
@@ -106,8 +106,7 @@ class Mail(Script):
         If validate_input does not raise an Exception, the input is assumed to be valid.
         """
         mailserver = validation_definition.parameters["mailserver"]
-        is_secure = bool(int(validation_definition.parameters["is_secure"]))
-        include_headers = bool(int(validation_definition.parameters['include_headers']))
+        is_secure = bool_variable(validation_definition.parameters["is_secure"])
         protocol = validation_definition.parameters["protocol"]
         email_address = validation_definition.metadata["name"]
         match = re.match(REGEX_EMAIL, email_address)
@@ -213,53 +212,63 @@ class Mail(Script):
         # Define local variables
         credential = self.get_credential()
         fetched_mail = []
-
         if self.is_secure is True:
             mailclient = imaplib.IMAP4_SSL(self.mailserver)
         else:
             mailclient = imaplib.IMAP4(self.mailserver)
         try:
+            mailclient.debug = 4
+            self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
             mailclient.login(credential.username, credential.clear_password)
         except imaplib.IMAP4.error:
             raise MailLoginFailed(self.mailserver, credential.username)
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
-        mailclient.list()
+        self.log(EventWriter.INFO, "Listing folders in mailbox=%s" % self.username)
+        with Capturing() as output:
+            mailclient.list()
+            self.log(EventWriter.INFO, "IMAP debug - %s" % output)
         if self.mailbox_cleanup == 'delete' or self.mailbox_cleanup == 'delayed':
             imap_readonly_flag = False
         else:
+            self.log(EventWriter.INFO, "Accessing mailbox with readonly attribute")
             imap_readonly_flag = IMAP_READONLY_FLAG
         """
         Might want to iterate over all the child folders of inbox in future version
         And Extend the choise of having this readonly, so mails are saved in mailbox.
         Need to move all this into a controller object that can work on email.Message.Message
         """
-        mailclient.select('inbox', readonly=imap_readonly_flag)
-        status, data = mailclient.uid('search', None, 'ALL')
-        if status == 'OK':
-            email_ids = data[0].split()
-            num_of_messages = len(email_ids)
-            if num_of_messages > 0:
-                num = 0
-                mails_retrieved = 0
-                while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
-                    result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
-                    raw_email = email_data[0][1]
-                    formatted_email = process_raw_email(raw_email, self.include_headers)
-                    mid = formatted_email[1]
-                    if locate_checkpoint(self.checkpoint_dir, mid) and (
-                                    self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
-                        mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                        # if not locate_checkpoint(...): then message deletion has been delayed until next run
-                    else:
-                        fetched_mail.append(formatted_email)
-                        mails_retrieved += 1
-                    if self.mailbox_cleanup == 'delete':
-                        mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                    num += 1
-                mailclient.expunge()
-                mailclient.close()
-                mailclient.logout()
+        output = []
+        with Capturing(output) as output:
+            mailclient.select('inbox', readonly=imap_readonly_flag)
+            status, data = mailclient.uid('search', None, 'ALL')
+            if status == 'OK':
+                email_ids = data[0].split()
+                num_of_messages = len(email_ids)
+                if num_of_messages > 0:
+                    num = 0
+                    mails_retrieved = 0
+                    while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
+                        result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
+                        if result == 'OK':
+                            raw_email = email_data[0][1]
+                            formatted_email = process_raw_email(raw_email, self.include_headers)
+                            mid = formatted_email[1]
+                            if locate_checkpoint(self.checkpoint_dir, mid) and (
+                                            self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                                mailclient.expunge()
+                                # if not locate_checkpoint(...): then message deletion has been delayed until next run
+                            else:
+                                fetched_mail.append(formatted_email)
+                                mails_retrieved += 1
+                            if self.mailbox_cleanup == 'delete':
+                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                                mailclient.expunge()
+                            num += 1
+                    mailclient.close()
+                    mailclient.logout()
+        self.log(EventWriter.INFO, "IMAP debug: \n\t%s" % "\n".join(output))
         return fetched_mail
 
     def stream_pop_emails(self):
@@ -271,11 +280,9 @@ class Mail(Script):
         credential = self.get_credential()
         try:
             if self.is_secure:
-                mailclient = poplib.POP3_SSL(host=self.mailserver,
-                                             port=get_mail_port(protocol=self.protocol, is_secure=self.is_secure))
+                mailclient = poplib.POP3_SSL(host=self.mailserver)
             else:
-                mailclient = poplib.POP3(host=self.mailserver,
-                                         port=get_mail_port(protocol=self.protocol, is_secure=self.is_secure))
+                mailclient = poplib.POP3(host=self.mailserver)
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
         except poplib.error_proto, e:
@@ -294,6 +301,7 @@ class Mail(Script):
             mails_retrieved = 0
             while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
                 num += 1
+                """Can capture output of next command to debug if requested, but it'll contain full mail"""
                 (header, msg, octets) = mailclient.retr(num)
                 raw_email = '\n'.join(msg)
                 formatted_email = process_raw_email(raw_email, self.include_headers)
@@ -308,6 +316,7 @@ class Mail(Script):
                                 self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                     mailclient.dele(num)
             self.log(EventWriter.INFO, mailclient.quit())
+        #mailclient.quit() - causes stderr POP3_SSL instance has no attribute 'sslobj'
         return fetched_mail
 
     def stream_events(self, inputs, ew):
@@ -332,14 +341,12 @@ class Mail(Script):
             self.password = input_item["password"]
             self.realm = REALM
             self.protocol = input_item['protocol']
+            self.include_headers = bool_variable(input_item['include_headers'])
+            self.is_secure = bool_variable(input_item["is_secure"])
             self.checkpoint_dir = inputs.metadata['checkpoint_dir']
             self.log = ew.log
             if not input_item['mailbox_cleanup']:
                 self.mailbox_cleanup = input_item['mailbox_cleanup']
-            if input_item['include_headers'] is not None:
-                self.include_headers = bool(int(input_item['include_headers']))
-            if input_item['is_secure'] is not None:
-                self.is_secure = bool(int(input_item["is_secure"]))
             match = re.match(REGEX_EMAIL, str(self.username))
             if match is None:
                 ew.log(EventWriter.ERROR, "Modular input name must be an email address")
