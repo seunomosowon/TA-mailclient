@@ -210,7 +210,6 @@ class Mail(Script):
         """
         # Define local variables
         credential = self.get_credential()
-        fetched_mail = []
         if self.is_secure is True:
             mailclient = imaplib.IMAP4_SSL(self.mailserver)
         else:
@@ -237,45 +236,51 @@ class Mail(Script):
         And Extend the choise of having this readonly, so mails are saved in mailbox.
         Need to move all this into a controller object that can work on email.Message.Message
         """
-        output = []
-        with Capturing(output) as output:
-            mailclient.select('inbox', readonly=imap_readonly_flag)
-            status, data = mailclient.uid('search', None, 'ALL')
-            if status == 'OK':
-                email_ids = data[0].split()
-                num_of_messages = len(email_ids)
-                if num_of_messages > 0:
-                    num = 0
-                    mails_retrieved = 0
-                    while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
-                        result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
-                        if result == 'OK':
-                            raw_email = email_data[0][1]
-                            formatted_email = process_raw_email(raw_email, self.include_headers)
-                            mid = formatted_email[1]
-                            if locate_checkpoint(self.checkpoint_dir, mid) and (
-                                            self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
-                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                                mailclient.expunge()
-                                # if not locate_checkpoint(...): then message deletion has been delayed until next run
-                            else:
-                                fetched_mail.append(formatted_email)
-                                mails_retrieved += 1
-                            if self.mailbox_cleanup == 'delete':
-                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                                mailclient.expunge()
-                            num += 1
-                    mailclient.close()
-                    mailclient.logout()
-        self.log(EventWriter.INFO, "\n".join(["IMAP debug: " + s for s in output]))
-        return fetched_mail
+        mailclient.select('inbox', readonly=imap_readonly_flag)
+        status, data = mailclient.uid('search', None, 'ALL')
+        if status == 'OK':
+            email_ids = data[0].split()
+            num_of_messages = len(email_ids)
+            if num_of_messages > 0:
+                num = 0
+                mails_retrieved = 0
+                while num != num_of_messages:
+                    result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
+                    if result == 'OK':
+                        raw_email = email_data[0][1]
+                        message_time, message_mid, msg = process_raw_email(raw_email, self.include_headers)
+                        if locate_checkpoint(self.checkpoint_dir, message_mid) and (
+                                        self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                            mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                            mailclient.expunge()
+                            self.log(EventWriter.DEBUG, "Found a mail that had already been indexed: %s" % message_mid)
+                            # if not locate_checkpoint(...): then message deletion has been delayed until next run
+                        elif not locate_checkpoint(self.checkpoint_dir, message_mid):
+                            logevent = Event(
+                                stanza=self.username,
+                                data=msg,
+                                host=self.mailserver,
+                                source=self.input_name,
+                                time="%.3f" % message_time,
+                                done=True,
+                                unbroken=True
+                            )
+                            self.write_event(logevent)
+                            save_checkpoint(self.checkpoint_dir, message_mid)
+                            mails_retrieved += 1
+                        if self.mailbox_cleanup == 'delete':
+                            mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                            mailclient.expunge()
+                        num += 1
+                mailclient.close()
+                mailclient.logout()
+                self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
 
     def stream_pop_emails(self):
         """
         :return: This returns a list of the messages retrieved via POP3
         :rtype: list
         """
-        fetched_mail = []
         credential = self.get_credential()
         try:
             if self.is_secure:
@@ -295,33 +300,37 @@ class Mail(Script):
             self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.pass_(credential.clear_password))
         except poplib.error_proto:
             raise MailLoginFailed(self.mailserver, credential.username)
-        mailclient.set_debuglevel(2)
         num = 0
         mails_retrieved = 0
-        with Capturing() as output:
-            (num_of_messages, totalsize) = mailclient.stat()
-            if num_of_messages > 0:
-                while mails_retrieved < MAX_FETCH_COUNT and num != num_of_messages:
-                    num += 1
-                    (header, msg, octets) = mailclient.retr(num)
-                    # fetched_mail.append(header + '\n'.join(msg))
-                    raw_email = '\n'.join(msg)
-                    formatted_email = process_raw_email(raw_email, self.include_headers)
-                    email_id = formatted_email[1]
-                    if not locate_checkpoint(self.checkpoint_dir, email_id):
-                        """Append the mail if it is readonly or if the mail will be deleted"""
-                        fetched_mail.append(formatted_email)
-                        mails_retrieved += 1
-                        if self.mailbox_cleanup == 'delete':
-                            mailclient.dele(num)
-                    elif locate_checkpoint(self.checkpoint_dir, email_id) and (
-                                    self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+        (num_of_messages, totalsize) = mailclient.stat()
+        if num_of_messages > 0:
+            while num != num_of_messages:
+                num += 1
+                (header, msg, octets) = mailclient.retr(num)
+                raw_email = '\n'.join(msg)
+                message_time, message_mid, msg = process_raw_email(raw_email, self.include_headers)
+                if not locate_checkpoint(self.checkpoint_dir, message_mid):
+                    """index the mail if it is readonly or if the mail will be deleted"""
+                    logevent = Event(
+                        stanza=self.username,
+                        data=msg,
+                        host=self.mailserver,
+                        source=self.input_name,
+                        time="%.3f" % message_time,
+                        done=True,
+                        unbroken=True
+                    )
+                    self.write_event(logevent)
+                    save_checkpoint(self.checkpoint_dir, message_mid)
+                    mails_retrieved += 1
+                    if self.mailbox_cleanup == 'delete':
                         mailclient.dele(num)
-                mailclient.quit()
-            mailclient.set_debuglevel(1)
-            self.log(EventWriter.DEBUG, "POP3 debug: %s" % "\n".join(["POP3 debug: " + s for s in output]))
+                elif locate_checkpoint(self.checkpoint_dir, message_mid) and (
+                                self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                    self.log(EventWriter.DEBUG, "Found a mail that had already been indexed: %s" % message_mid)
+                    mailclient.dele(num)
+            mailclient.quit()
             self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
-        return fetched_mail
 
     def stream_events(self, inputs, ew):
         """This function handles all the action: splunk calls this modular input
@@ -337,53 +346,34 @@ class Mail(Script):
         """
         input_list = inputs.inputs.popitem()
         """This runs just once since the default self.use_single_instance = False"""
-        try:
-            input_name, input_item = input_list
-            self.input_name = input_name
-            self.mailserver = input_item["mailserver"]
-            self.username = input_name.split("://")[1]
-            self.password = input_item["password"]
-            self.realm = REALM
-            self.protocol = input_item['protocol']
-            self.include_headers = bool_variable(input_item['include_headers'])
-            self.is_secure = bool_variable(input_item["is_secure"])
-            self.checkpoint_dir = inputs.metadata['checkpoint_dir']
-            self.log = ew.log
-
-            if not input_item['mailbox_cleanup']:
-                self.mailbox_cleanup = input_item['mailbox_cleanup']
-            match = re.match(REGEX_EMAIL, str(self.username))
-            if match is None:
-                ew.log(EventWriter.ERROR, "Modular input name must be an email address")
-                self.disable_input()
-                raise MailExceptionStanzaNotEmail(self.username)
-            self.save_password()
-            if "POP3" == self.protocol:
-                mail_list = self.stream_pop_emails()
-            elif "IMAP" == self.protocol:
-                mail_list = self.stream_imap_emails()
-            else:
-                ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
-                self.disable_input()
-                raise MailExceptionInvalidProtocol
-            """Consider adding a checkpoint file here using the first n-characters including the date"""
-            for message_time, message_mid, msg in mail_list:
-                    if not locate_checkpoint(self.checkpoint_dir, message_mid):
-                        logevent = Event(
-                            stanza=self.input_name,
-                            data=msg,
-                            host=self.mailserver,
-                            source=self.input_name,
-                            time="%.3f" % message_time,
-                            done=True,
-                            unbroken=True
-                        )
-                        ew.write_event(logevent)
-                        save_checkpoint(self.checkpoint_dir, message_mid)
-                    else:
-                        ew.log(EventWriter.DEBUG, "Found a mail that had already been indexed")
-        except MailException as e:
-            ew.log(EventWriter.INFO, str(e))
+        input_name, input_item = input_list
+        self.input_name = input_name
+        self.mailserver = input_item["mailserver"]
+        self.username = input_name.split("://")[1]
+        self.password = input_item["password"]
+        self.realm = REALM
+        self.protocol = input_item['protocol']
+        self.include_headers = bool_variable(input_item['include_headers'])
+        self.is_secure = bool_variable(input_item["is_secure"])
+        self.checkpoint_dir = inputs.metadata['checkpoint_dir']
+        self.log = ew.log
+        self.write_event = ew.write_event
+        if not input_item['mailbox_cleanup']:
+            self.mailbox_cleanup = input_item['mailbox_cleanup']
+        match = re.match(REGEX_EMAIL, str(self.username))
+        if match is None:
+            ew.log(EventWriter.ERROR, "Modular input name must be an email address")
+            self.disable_input()
+            raise MailExceptionStanzaNotEmail(self.username)
+        self.save_password()
+        if "POP3" == self.protocol:
+            self.stream_pop_emails()
+        elif "IMAP" == self.protocol:
+            self.stream_imap_emails()
+        else:
+            ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
+            self.disable_input()
+            raise MailExceptionInvalidProtocol
 
     def __init__(self):
         super(Mail, self).__init__()
@@ -395,6 +385,7 @@ class Mail(Script):
         self.protocol = "POP3"
         self.checkpoint_dir = ""
         self.log = EventWriter.log
+        self.write_event = EventWriter.write_event
         self.include_headers = INDEX_ATTACHMENT_DEFAULT
         self.mailbox_cleanup = "readonly"
         self.is_secure = INDEX_ATTACHMENT_DEFAULT

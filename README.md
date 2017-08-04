@@ -30,7 +30,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.1.5 |
+| App Version | 1.1.6 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -45,7 +45,6 @@ Passwords should also get replicated between search heard peer members.
 This only fetches emails form the 'inbox' folder.
 A future upgrade might include support for additional mailbox directories.
 
-By default, it fetches up to 25 new emails at every run.
 Be sure to set the interval to run this as frequently as required.
 
 It supports all 'text/*' content types and several well known scripts (.bat, .js, .sh) detailed below:
@@ -75,7 +74,7 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.1.5 of the TA-mailclient is compatible with:
+Version 1.1.6 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 6.x |
 | --- | --- |
@@ -99,21 +98,19 @@ TA-mailclient includes the following new features:
 - Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
     - Also added static mail preamble for line break. Event breaking configuration may not be
     required since the modular input writes individual events separately, but it's always a good idea.
-- Added delineations and extractions to multipart content  
+- Additional logging from pop3 / imap 
 - Removed interval from inputs.conf.spec
 - Upgraded Splunk SDK to 1.6.2
-- Added additional test cases on Travis CI to test that functionality works
-- Fix loading local exceptions
+- Added additional test cases on Travis CI to test that functionality work
 - modularized storage/password functions to make them reusable and simpler
 - Also fixed exception handling when dealing with storage/password
-- Fixed type casting for boolean parameters (is\_secure, include\_headers)
+- Fixed type casting for boolean parameters (is\_secure, include\_headers) and port validation
 - Rewrote sections of mail\_common
-- Fixed bool parameter for mail port validation for insecure protocols
 - Merged functions from poputils/imaputils into main code and added additional logs from connection
 
 ##### Known issues
 
-Currently no known issues in version 1.1.5 of TA-mailclient.
+Currently no known issues in version 1.1.6 of TA-mailclient.
 This is currently tested against the latest version of Splunk Enterprise.
 Issues can be reported and tracked on Github at this time.
 
