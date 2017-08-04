@@ -215,7 +215,7 @@ class Mail(Script):
         else:
             mailclient = imaplib.IMAP4(self.mailserver)
         try:
-            mailclient.debug = 4
+            #mailclient.debug = 4
             self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
             mailclient.login(credential.username, credential.clear_password)
         except imaplib.IMAP4.error:
@@ -223,9 +223,9 @@ class Mail(Script):
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
         self.log(EventWriter.INFO, "Listing folders in mailbox=%s" % self.username)
-        with Capturing() as output:
-            mailclient.list()
-            self.log(EventWriter.INFO, "IMAP debug - %s" % output)
+        #with Capturing() as output:
+        mailclient.list()
+        #self.log(EventWriter.INFO, "IMAP debug - %s" % output)
         if self.mailbox_cleanup == 'delete' or self.mailbox_cleanup == 'delayed':
             imap_readonly_flag = False
         else:
