@@ -358,8 +358,10 @@ class Mail(Script):
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
         self.log = ew.log
         self.write_event = ew.write_event
-        if not input_item['mailbox_cleanup']:
+        if input_item['mailbox_cleanup']:
             self.mailbox_cleanup = input_item['mailbox_cleanup']
+        else:
+            self.mailbox_cleanup = 'readonly'
         match = re.match(REGEX_EMAIL, str(self.username))
         if match is None:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
@@ -374,21 +376,6 @@ class Mail(Script):
             ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
             self.disable_input()
             raise MailExceptionInvalidProtocol
-
-    def __init__(self):
-        super(Mail, self).__init__()
-        self.input_name = "xyz@abc.com"
-        self.mailserver = "a.b.c.d"
-        self.username = "xyz@abc.com"
-        self.password = "xyz@abc.com"
-        self.realm = REALM
-        self.protocol = "POP3"
-        self.checkpoint_dir = ""
-        self.log = EventWriter.log
-        self.write_event = EventWriter.write_event
-        self.include_headers = INDEX_ATTACHMENT_DEFAULT
-        self.mailbox_cleanup = "readonly"
-        self.is_secure = INDEX_ATTACHMENT_DEFAULT
 
 
 if __name__ == "__main__":

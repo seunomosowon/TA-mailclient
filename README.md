@@ -30,7 +30,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.1.6 |
+| App Version | 1.1.7 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -74,7 +74,7 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.1.6 of the TA-mailclient is compatible with:
+Version 1.1.7 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 6.x |
 | --- | --- |
@@ -110,7 +110,7 @@ TA-mailclient includes the following new features:
 
 ##### Known issues
 
-Currently no known issues in version 1.1.6 of TA-mailclient.
+Currently no known issues in version 1.1.7 of TA-mailclient.
 This is currently tested against the latest version of Splunk Enterprise.
 Issues can be reported and tracked on Github at this time.
 
@@ -255,8 +255,8 @@ To install and configure this app on your supported standalone platform, do one 
 
 **Install to search head** - (Standalone or Search head cluster)
 
-- Install the support add-on located at ```TA-mailclient/appserver/SA-mailclient.tgz``` on the search head.
-If using search head cluster, install the SA-mailclient.tgz via a search head deployer.
+- Deploy the props.conf and transforms.conf from TA-mailclient to the search head. 
+If using search head cluster, deploy the props.conf and transforms.conf via a search head deployer.
 
 # <step>
 
