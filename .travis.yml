@@ -31,6 +31,8 @@ before_install:
     if [ 100 -eq "$i" ]; then exit -1 ; fi ; done
   - echo "`date -u` - Changing default admin password"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk edit user admin -password $RANDOM_PASSWORD -role admin -auth admin:random_password
+  - echo "`date -u` - Displaying Splunk test version installed"
+  - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk version
 
 install:
   - echo "`date -u` - Installing TA"
