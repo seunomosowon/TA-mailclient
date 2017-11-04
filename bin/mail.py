@@ -227,7 +227,7 @@ class Mail(Script):
             mailclient = imaplib.IMAP4(self.mailserver)
         try:
             # mailclient.debug = 4
-            self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
+            self.log(EventWriter.INFO, "IMAP - Connecting to mailbox as %s" % self.username)
             mailclient.login(credential.username, credential.clear_password)
         except imaplib.IMAP4.error:
             raise MailLoginFailed(self.mailserver, credential.username)
@@ -305,7 +305,7 @@ class Mail(Script):
             raise MailProtocolError(str(e))
         try:
             mailclient.set_debuglevel(2)
-            self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
+            self.log(EventWriter.INFO, "POP3 - Connecting to mailbox as %s" % self.username)
             self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.user(credential.username))
             mailclient.set_debuglevel(1)
             self.log(EventWriter.INFO, "POP3 debug: %s" % mailclient.pass_(credential.clear_password))
