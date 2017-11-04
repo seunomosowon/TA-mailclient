@@ -27,12 +27,12 @@ before_install:
     do if curl --fail -k -u admin:random_password https://localhost:$SPLKMGMT/services/server/info &> /dev/null;
     then break;
     fi;
+  - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk status
+  - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk version
     echo "`date -u` - Waited $i seconds for container to start" ;
     if [ 100 -eq "$i" ]; then exit -1 ; fi ; done
   - echo "`date -u` - Changing default admin password"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk edit user admin -password $RANDOM_PASSWORD -role admin -auth admin:random_password
-  - echo "`date -u` - Displaying Splunk test version installed"
-  - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk version
 
 install:
   - echo "`date -u` - Installing TA"
