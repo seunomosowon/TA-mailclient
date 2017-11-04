@@ -21,6 +21,17 @@ class Mail(Script):
     """
     APP = __file__.split(os.sep)[-3]
 
+    def __init__(self):
+        super(Mail, self).__init__()
+        self.realm = REALM
+        self.log = EventWriter.log
+        self.write_event = EventWriter.write_event
+        self.include_headers = INDEX_ATTACHMENT_DEFAULT
+        self.mailbox_cleanup = "readonly"
+        self.is_secure = INDEX_ATTACHMENT_DEFAULT
+        self.checkpoint_dir = ""
+
+
     # noinspection PyShadowingNames
     def get_scheme(self):
         """This overrides the super method from the parent class"""
@@ -215,7 +226,7 @@ class Mail(Script):
         else:
             mailclient = imaplib.IMAP4(self.mailserver)
         try:
-            #mailclient.debug = 4
+            # mailclient.debug = 4
             self.log(EventWriter.INFO, "Connecting to mailbox as %s" % self.username)
             mailclient.login(credential.username, credential.clear_password)
         except imaplib.IMAP4.error:
@@ -223,9 +234,9 @@ class Mail(Script):
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
         self.log(EventWriter.INFO, "Listing folders in mailbox=%s" % self.username)
-        #with Capturing() as output:
+        # with Capturing() as output:
         mailclient.list()
-        #self.log(EventWriter.INFO, "IMAP debug - %s" % output)
+        # self.log(EventWriter.INFO, "IMAP debug - %s" % output)
         if self.mailbox_cleanup == 'delete' or self.mailbox_cleanup == 'delayed':
             imap_readonly_flag = False
         else:
@@ -358,12 +369,13 @@ class Mail(Script):
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
         self.log = ew.log
         self.write_event = ew.write_event
+        if not self.is_secure:
+            self.log(EventWriter.WARN, "Mail retrieval will not be secure!!"
+                                       "This will be unsupported in a future release")
         if input_item['mailbox_cleanup']:
             self.mailbox_cleanup = input_item['mailbox_cleanup']
-        else:
-            self.mailbox_cleanup = 'readonly'
         match = re.match(REGEX_EMAIL, str(self.username))
-        if match is None:
+        if not match:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
             self.disable_input()
             raise MailExceptionStanzaNotEmail(self.username)
