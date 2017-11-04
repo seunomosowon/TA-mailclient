@@ -23,11 +23,11 @@ before_install:
     splunk/splunk:$SPLUNK_VERSION
   - echo "`date -u` - Starting container"
   - docker start autobuild_$SPLKMGMT
-  - for i in `seq 0 5 100`;
+  - for i in `seq 0 5 100`; sleep 5;
     do if curl --fail -k -u admin:random_password https://localhost:$SPLKMGMT/services/server/info &> /dev/null;
     then break;
     fi;
-    echo "`date -u` - Waited $i seconds for container to start" ; sleep 5;
+    echo "`date -u` - Waited $i seconds for container to start" ;
     if [ 100 -eq "$i" ]; then exit -1 ; fi ; done
   - echo "`date -u` - Changing default admin password"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk edit user admin -password $RANDOM_PASSWORD -role admin -auth admin:random_password
@@ -56,7 +56,7 @@ script:
   - echo "`date -u` - Check if password encryption is working"
   - docker exec autobuild_$SPLKMGMT grep -B1 encrypted /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
   - echo "`date -u` - Check if a test mail was pulled"
-  - for i in `seq 0 5 40`; do echo "Waited $i seconds for pop3 results" ;
+  - for i in `seq 0 5 40`; do echo "Waited $i seconds for results" ;
     if curl -s --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=main sourcetype=mail* | head 2 | table _time sourcetype source _raw" -d output_mode=raw -d earliest="-365d" -d latest=now ;
     curl -s --get -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/search/jobs/export --data-urlencode search="search index=main sourcetype=mail* | table _time sourcetype source from_name sender recipient message_id file_name" -d output_mode=csv -d earliest="-365d" -d latest=now ;
     then break; fi; sleep 5; done
