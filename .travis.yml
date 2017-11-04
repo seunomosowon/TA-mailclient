@@ -23,14 +23,14 @@ before_install:
     splunk/splunk:$SPLUNK_VERSION
   - echo "`date -u` - Starting container"
   - docker start autobuild_$SPLKMGMT
-  - for i in `seq 0 5 100`; sleep 5;
+  - for i in `seq 0 5 100`; 
     do if curl --fail -k -u admin:random_password https://localhost:$SPLKMGMT/services/server/info &> /dev/null;
     then break;
     fi;
+    echo "`date -u` - Waited $i seconds for container to start" ; sleep 5
+    if [ 100 -eq "$i" ]; then exit -1 ; fi ; done
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk status
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk version
-    echo "`date -u` - Waited $i seconds for container to start" ;
-    if [ 100 -eq "$i" ]; then exit -1 ; fi ; done
   - echo "`date -u` - Changing default admin password"
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk edit user admin -password $RANDOM_PASSWORD -role admin -auth admin:random_password
 
