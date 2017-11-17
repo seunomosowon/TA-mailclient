@@ -30,7 +30,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.1.7 |
+| App Version | 1.1.9 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -74,7 +74,7 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.1.7 of the TA-mailclient is compatible with:
+Version 1.1.9 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 6.x |
 | --- | --- |
@@ -95,6 +95,7 @@ as it requires Python which comes with an HF or a full Splunk install.
 
 TA-mailclient includes the following new features:
 
+- Added support for zips and files within zips
 - Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
     - Also added static mail preamble for line break. Event breaking configuration may not be
     required since the modular input writes individual events separately, but it's always a good idea.
@@ -110,7 +111,7 @@ TA-mailclient includes the following new features:
 
 ##### Known issues
 
-Currently no known issues in version 1.1.7 of TA-mailclient.
+Currently no known issues in version 1.1.9 of TA-mailclient.
 This is currently tested against the latest version of Splunk Enterprise.
 Issues can be reported and tracked on Github at this time.
 

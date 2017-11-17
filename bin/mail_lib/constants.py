@@ -1,6 +1,8 @@
 # DEFAULTS
 IMAP_READONLY_FLAG = True
 INDEX_ATTACHMENT_DEFAULT = True
+DEFAULT_INCLUDE_HEADERS = True
+DEFAULT_PROTOCOL_SECURITY = True
 MAX_FETCH_COUNT = 25
 REALM = 'mail'
 PASSWORD_PLACEHOLDER = 'encrypted'
@@ -18,7 +20,9 @@ SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/
                            'application/javascript', 'application/bat', 'application/x-bat',
                            'application/x-msdos-program', 'application/textedit',
                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
-SUPPORTED_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.docx'}
-MAILBOX_CLEANUP_DEFAULTS = 'readonly'
+TEXT_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js'}
+ZIP_EXTENSIONS = {'.zip', '.docx'}
+DEFAULT_MAILBOX_CLEANUP = 'readonly'
 MESSAGE_PREAMBLE = "VGhpcyBpcyBhIG1haWwgc2VwYXJhdG9yIGluIGJhc2U2NCBmb3Igb3VyIFNwbHVuayBpbmRleGluZwo=\n"
 MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
+EMAILPART = '$EMAIL$'

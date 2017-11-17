@@ -18,22 +18,9 @@ from .exceptions import *
 
 try:
     from cStringIO import StringIO
+    # cStringIO is faster
 except ImportError:
     from StringIO import StringIO
-
-
-class Capturing(list):
-    """ Thanks to Kindall and other examples on stackoverflow """
-
-    def __enter__(self):
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-
-    def __exit__(self, *args):
-        self.extend(self._stringio.getvalue().splitlines())
-        del self._stringio  # free up some memory
-        sys.stdout = self._stdout
 
 
 def get_mail_port(protocol, is_secure):
@@ -91,19 +78,30 @@ def getheader(header_text, default="ascii"):
     return u"".join(header_sections)
 
 
-def read_docx(decoded_payload):
+def read_docx(part, part_name):
     """
     This reads a docx file form a string and outputs just the text from the document
     along with the document's internal structure
-    :param decoded_payload: This is a the payload from an email that contains a docx file
+    :param part: This is a MIME part from an email that contains a docx file
+    :param part_name: This can be either a file name or string $EMAIL$
+    :type part_name basestring
     :return: This returns the texts from the word document.
-    :rtype: basestring
+    :rtype: list
     """
-    # decoded_payload = open('a.docx', 'r').read()
+    if part_name == EMAILPART:
+        decoded_payload = part.get_payload(decode=True)
+        zip_name = part.get_filename() or ''
+    else:
+        decoded_payload = part
+        zip_name = part_name
     fp = StringIO(decoded_payload)
-    zfp = zipfile.ZipFile(fp)
+    try:
+        zfp = zipfile.ZipFile(fp)
+    except zipfile.BadZipfile:
+        return ['#UNSUPPORTED_ATTACHMENT: %s' % zip_name]
+    return_doc = []
     if zfp:
-        y = parsexml(zfp.open('[Content_Types].xml', 'rU')).documentElement.toprettyxml()
+        return_doc.append(parsexml(zfp.open('[Content_Types].xml', 'rU')).documentElement.toprettyxml())
         """
         I can check for Macros here
         if zfp.getinfo('word/vbaData.xml'):
@@ -112,12 +110,62 @@ def read_docx(decoded_payload):
         """
         if zfp.getinfo('word/document.xml'):
             doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
-            y += u''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')])
+            return_doc.append(u''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')]))
         else:
-            y = u'Not yet supported docx file'
+            return_doc.append('#UNSUPPORTED_DOCX_FILE: file_name = %s' % zip_name)
     else:
-        y = u'Email attachment did not match Word / OpenXML document format'
-    return y
+        return_doc.append('#INVALID_DOCX_FILE: file_name = %s' % zip_name)
+    return return_doc
+
+
+def parse_zip(part, part_name):
+    """
+    This reads a docx file form a string and outputs just the text from the document
+    along with the document's internal structure
+    :param part: This is a MIME message part from an email that contains a docx file
+    :type part: Union[file,email.message.Message]
+    :param part_name: This can be either file or email
+    :type part_name basestring
+    :return: This returns the texts from the word document.
+    :rtype: list
+    """
+    if '$EMAIL$' == part_name:
+        decoded_payload = part.get_payload(decode=True)
+        zip_name = part.get_filename() or ''
+    else:
+        decoded_payload = part
+        zip_name = part_name
+    fp = StringIO(decoded_payload)
+    try:
+        zfp = zipfile.ZipFile(fp)
+    except zipfile.BadZipfile:
+        return ['#UNSUPPORTED_ATTACHMENT: %s' % zip_name]
+    extension = str(os.path.splitext(zip_name)[1]).lower()
+    unzip_content = []
+    if zfp:
+        ziplist = ['#BEGIN_ZIP_FILELIST: %s' % zip_name]
+        ziplist.extend(zfp.namelist())
+        ziplist.append('#END_ZIP_FILELIST: %s' % zip_name)
+        unzip_content.append("\n".join(ziplist))
+        if '.docx' == extension:
+            unzip_content.extend(read_docx(part, part_name))
+        else:
+            for each_compressedfile in zfp.namelist():
+                if not each_compressedfile.endswith('/'):
+                    zipped_fextension = str(os.path.splitext(each_compressedfile)[1]).lower()
+                    zipped_file = ["#BEGIN_ATTACHMENT: %s/%s" % (zip_name, each_compressedfile)]
+                    if zipped_fextension in TEXT_FILE_EXTENSIONS:
+                        f = zfp.open(each_compressedfile)
+                        for line in f:
+                            zipped_file.append(line)
+                    elif zipped_fextension in ZIP_EXTENSIONS:
+                        file_buff = zfp.open(each_compressedfile).read()
+                        zipped_file.extend(parse_zip(file_buff, each_compressedfile))
+                    else:
+                        zipped_file.append("#UNSUPPORTED_CONTENT: file_name = %s" % each_compressedfile)
+                    zipped_file.append("#END_ATTACHMENT: %s/%s" % (zip_name, each_compressedfile))
+                unzip_content.append("\n".join(zipped_file))
+    return unzip_content
 
 
 def recode_mail(part):
@@ -162,12 +210,12 @@ def process_raw_email(raw, include_headers):
                 continue
             body.append("#START_OF_MULTIPART_%d" % part_number)
             extension = str(os.path.splitext(part.get_filename() or '')[1]).lower()
-            if extension in SUPPORTED_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or \
-               part.get_content_maintype() == 'text':
+            if extension in TEXT_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or \
+               part.get_content_maintype() == 'text' or extension in ZIP_EXTENSIONS:
                 if part.get_filename():
                     body.append("#BEGIN_ATTACHMENT: %s" % str(part.get_filename()))
-                    if extension == '.docx':
-                        body.append(read_docx(part.get_payload(decode=True)))
+                    if extension in ZIP_EXTENSIONS:
+                        body.append(parse_zip(part, EMAILPART))
                     else:
                         body.append(recode_mail(part))
                     body.append("#END_ATTACHMENT: %s" % str(part.get_filename()))

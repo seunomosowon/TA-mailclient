@@ -26,11 +26,7 @@ class Mail(Script):
         self.realm = REALM
         self.log = EventWriter.log
         self.write_event = EventWriter.write_event
-        self.include_headers = INDEX_ATTACHMENT_DEFAULT
-        self.mailbox_cleanup = "readonly"
-        self.is_secure = INDEX_ATTACHMENT_DEFAULT
         self.checkpoint_dir = ""
-
 
     # noinspection PyShadowingNames
     def get_scheme(self):
@@ -362,18 +358,16 @@ class Mail(Script):
         self.mailserver = input_item["mailserver"]
         self.username = input_name.split("://")[1]
         self.password = input_item["password"]
-        self.realm = REALM
         self.protocol = input_item['protocol']
-        self.include_headers = bool_variable(input_item['include_headers'])
-        self.is_secure = bool_variable(input_item["is_secure"])
+        self.include_headers = bool_variable(input_item['include_headers']) or DEFAULT_INCLUDE_HEADERS
+        self.is_secure = bool_variable(input_item["is_secure"]) or DEFAULT_PROTOCOL_SECURITY
+        self.mailbox_cleanup = input_item['mailbox_cleanup'] or DEFAULT_MAILBOX_CLEANUP
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
         self.log = ew.log
         self.write_event = ew.write_event
         if not self.is_secure:
             self.log(EventWriter.WARN, "Mail retrieval will not be secure!!"
                                        "This will be unsupported in a future release")
-        if input_item['mailbox_cleanup']:
-            self.mailbox_cleanup = input_item['mailbox_cleanup']
         match = re.match(REGEX_EMAIL, str(self.username))
         if not match:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
