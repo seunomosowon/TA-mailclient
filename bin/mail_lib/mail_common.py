@@ -215,7 +215,7 @@ def process_raw_email(raw, include_headers):
                 if part.get_filename():
                     body.append("#BEGIN_ATTACHMENT: %s" % str(part.get_filename()))
                     if extension in ZIP_EXTENSIONS:
-                        body.append(parse_zip(part, EMAILPART))
+                        body.append("\n".join(parse_zip(part, EMAILPART)))
                     else:
                         body.append(recode_mail(part))
                     body.append("#END_ATTACHMENT: %s" % str(part.get_filename()))
