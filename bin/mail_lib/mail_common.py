@@ -83,6 +83,7 @@ def read_docx(part, part_name):
     This reads a docx file form a string and outputs just the text from the document
     along with the document's internal structure
     :param part: This is a MIME part from an email that contains a docx file
+    :type part: basestring
     :param part_name: This can be either a file name or string $EMAIL$
     :type part_name basestring
     :return: This returns the texts from the word document.
@@ -123,7 +124,7 @@ def parse_zip(part, part_name):
     This reads a docx file form a string and outputs just the text from the document
     along with the document's internal structure
     :param part: This is a MIME message part from an email that contains a docx file
-    :type part: Union[file,email.message.Message]
+    :type part: basestring
     :param part_name: This can be either file or email
     :type part_name basestring
     :return: This returns the texts from the word document.
