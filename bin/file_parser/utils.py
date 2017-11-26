@@ -10,7 +10,6 @@ try:
 except ImportError:
     from StringIO import StringIO
 
-TEXT_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js'}
 MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
 ZIP_EXTENSIONS = {'.zip', '.docx'}
 EMAIL_PART = '$EMAIL$'
@@ -18,6 +17,12 @@ SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/
                            'application/javascript', 'application/bat', 'application/x-bat',
                            'application/x-msdos-program', 'application/textedit',
                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
+TEXT_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.asm'}
+"""
+It already indexes all text/* including:
+    'text/plain', 'text/html', 'text/x-asm', 'text/x-c','text/x-python-script','text/x-python'
+No need to add this to the supported types list
+"""
 
 
 def getheader(header_text, default="ascii"):
