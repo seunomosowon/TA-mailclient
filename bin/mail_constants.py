@@ -16,13 +16,8 @@ It already indexes all text/* including:
     'text/plain', 'text/html', 'text/x-asm', 'text/x-c','text/x-python-script','text/x-python'
 No need to add this to the supported types list
 """
-SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/x-sh', 'application/x-csh',
-                           'application/javascript', 'application/bat', 'application/x-bat',
-                           'application/x-msdos-program', 'application/textedit',
-                           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
-TEXT_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js'}
-ZIP_EXTENSIONS = {'.zip', '.docx'}
+
 DEFAULT_MAILBOX_CLEANUP = 'readonly'
 MESSAGE_PREAMBLE = "VGhpcyBpcyBhIG1haWwgc2VwYXJhdG9yIGluIGJhc2U2NCBmb3Igb3VyIFNwbHVuayBpbmRleGluZwo=\n"
-MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
-EMAILPART = '$EMAIL$'
+
+

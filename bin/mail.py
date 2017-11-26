@@ -1,13 +1,17 @@
 #!/opt/splunk/bin/python
 
+import imaplib
+import poplib
 # import libraries required
 import re
+import sys
 from ssl import SSLError
-from splunklib.modularinput import *
-import poplib
-import imaplib
-from mail_lib.mail_common import *
 
+from mail_constants import *
+from mail_exceptions import *
+from mail_utils import *
+from file_parser import *
+from splunklib.modularinput import *
 
 # Define global variables
 __author__ = 'seunomosowon'
@@ -255,7 +259,7 @@ class Mail(Script):
                     result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
                     if result == 'OK':
                         raw_email = email_data[0][1]
-                        message_time, message_mid, msg = process_raw_email(raw_email, self.include_headers)
+                        message_time, message_mid, msg = email_mime.parse_email(raw_email, self.include_headers)
                         if locate_checkpoint(self.checkpoint_dir, message_mid) and (
                                         self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                             mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
@@ -315,7 +319,7 @@ class Mail(Script):
                 num += 1
                 (header, msg, octets) = mailclient.retr(num)
                 raw_email = '\n'.join(msg)
-                message_time, message_mid, msg = process_raw_email(raw_email, self.include_headers)
+                message_time, message_mid, msg = email_mime.parse_email(raw_email, self.include_headers)
                 if not locate_checkpoint(self.checkpoint_dir, message_mid):
                     """index the mail if it is readonly or if the mail will be deleted"""
                     logevent = Event(

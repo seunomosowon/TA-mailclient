@@ -1,26 +1,39 @@
-    ——-
+
+[![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Ace/donate)
+
 ## Table of Contents
 
 ### OVERVIEW
 
 - About the TA-mailclient
 - Release notes
+    - About this release
+    - New features
+    - To Do
+    - Known issues
+    - Third-party software attributions
+    - Older Releases
 - Support and resources
 
 ### INSTALLATION AND CONFIGURATION
 
 - Hardware and software requirements
+- Splunk Enterprise system requirements
+- Download
 - Installation steps
-- Configure TA-mailclient
-    - Parameters
+    - Deploy to single server instance
+    - Deploy to distributed deployment
+    - Deploy to Splunk Cloud
+    - Configure TA-mailclient
+        - Parameters
+- Upgrade
+- Copyright & License
 
 ### USER GUIDE
 
-- Key concepts
 - Data types
 - Troubleshooting
-- Upgrade
-- Copyright & License
+- Diagnostic & Debug Logs
 
 
 ---
@@ -30,7 +43,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.2.0 |
+| App Version | 1.3.0 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -74,7 +87,7 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.2.0 of the TA-mailclient is compatible with:
+Version 1.3.0 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 6.x |
 | --- | --- |
@@ -95,6 +108,7 @@ as it requires Python which comes with an HF or a full Splunk install.
 
 TA-mailclient includes the following new features:
 
+- Made it more modular to supporting more file types in zips and in emails
 - Added support for zips and files within zips
 - Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
     - Also added static mail preamble for line break. Event breaking configuration may not be
@@ -107,11 +121,16 @@ TA-mailclient includes the following new features:
 - Also fixed exception handling when dealing with storage/password
 - Fixed type casting for boolean parameters (is\_secure, include\_headers) and port validation
 - Rewrote sections of mail\_common
-- Merged functions from poputils/imaputils into main code and added additional logs from connection
+- Merged functions from poputils / imaputils into main code and added additional logs from connection
+
+##### To Do
+
+- Add attachment file hash to Splunk
+- Add support for doc / ppt / pptx
 
 ##### Known issues
 
-Currently no known issues in version 1.2.0 of TA-mailclient.
+Currently no known issues in version 1.3.0 of TA-mailclient.
 This is currently tested against the latest version of Splunk Enterprise.
 Issues can be reported and tracked on Github at this time.
 
@@ -123,32 +142,6 @@ This uses the inbuilt poplib and imaplib that comes with Python by default.
 Contributions on github are welcome and will be incorporated into the main release.
 Current contributors are listed in AUTHORS.md.
 
-##### Support and resources
-
-**Questions and answers**
-
-Access questions and answers specific to the TA-mailclient at (https://answers.splunk.com/).
-
-**Support**
-
-This Splunk support add-on is community / developer supported.
-
-Questions asked on Splunk answers will be answered either by the community of users or by the developer when available.
-All support questions should include the version of Splunk and OS.
-
-You can also contact the developer directly via [Splunkbase](https://splunkbase.splunk.com/app/3200/).
-Feedback and feature requests can also be sent via Splunkbase.
-
-Issues can also be submitted at the [TA-mailclient repo via on Github](https://github.com/seunomosowon/TA-mailclient/issues)
-
-Future release will support
-1. Support for configuration of mail limits in inputs.conf
-2. Recursive option to read all folders inside Inbox, and not just emails within inbox.
-3. Support indexing mails from additional folders in a mailbox
-
-**Note** : This has not been tested against an exhaustive list of mail servers, so I'll welcome the feedback.
-
-Also, feel free to send me a list of well known servers that you 're using this with without problems.
 
 ##### Older Releases
 
@@ -213,6 +206,44 @@ Also, feel free to send me a list of well known servers that you 're using this 
     * Adds support for base64 encoded emails.
 
 
+#### Support and resources
+
+**Questions and answers**
+
+Access questions and answers specific to the TA-mailclient at (https://answers.splunk.com/).
+
+**Support**
+
+This Splunk support add-on is community / developer supported.
+
+Questions asked on Splunk answers will be answered either by the community of users or by the developer when available.
+All support questions should include the version of Splunk and OS.
+
+You can also contact the developer directly via [Splunkbase](https://splunkbase.splunk.com/app/3200/).
+Feedback and feature requests can also be sent via Splunkbase.
+
+Issues can also be submitted at the [TA-mailclient repo via on Github](https://github.com/seunomosowon/TA-mailclient/issues)
+
+Future release will support
+1. Support for configuration of mail limits in inputs.conf
+2. Recursive option to read all folders inside Inbox, and not just emails within inbox.
+3. Support indexing mails from additional folders in a mailbox
+
+**Note** : This has not been tested against an exhaustive list of mail servers, so I'll welcome the feedback.
+
+Also, feel free to send me a list of well known servers that you 're using this with without problems.
+
+**Donations**
+
+I have received a few requests on how to make donations, and have now added this section.
+You can contact me for one-time paypal donations to my email or us Liberapay and stop it after one payment. 
+
+[![Donate on Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Seun/donate)
+
+Rate the add-on on [Splunkbase](https://splunkbase.splunk.com/app/3200/) if you use it and are happy with it, 
+and share your feedback. Thanks!
+
+
 ## INSTALLATION AND CONFIGURATION
 ### Hardware and software requirements
 
@@ -259,7 +290,6 @@ To install and configure this app on your supported standalone platform, do one 
 - Deploy the props.conf and transforms.conf from TA-mailclient to the search head. 
 If using search head cluster, deploy the props.conf and transforms.conf via a search head deployer.
 
-# <step>
 
 **Install to indexers**
 
@@ -275,9 +305,10 @@ More instructions available at the following [URL](https://docs.splunk.com/Docum
 ##### Deploy to Splunk Cloud
 
 For Splunk cloud installations, install TA-mailclient on a heavy forwarder that has been configured to forward
-events to your Splunk Cloud instance.
+events to your Splunk Cloud instance. 
+The sourcetype is set by the administrator of the heavy forwarder when configuring the inputs.
 
-You can work with Splunk Support on installing the Support add-on on Splunk Cloud.
+You can work with Splunk Support on installing the Support add-on on Splunk Cloud for parsing the mails collected.
 
 
 #### Configure TA-mailclient
@@ -335,7 +366,17 @@ This modular input supports multiple instances, and each input runs at separate 
 **include_headers** -  This determines if email headers should be included.
 
 
+### Copyright & License
+
+A copy of the Creative Commons Legal code has been added to the add-on detailing its license.
+
+
 ## USER GUIDE
+
+### Data types
+
+Data is indexed using a sourcetype specified by the administrator when configuring the inputs.
+If nothing is specified, events will get indexed with a sourcetype of `mail`. 
 
 ### Troubleshooting
 
