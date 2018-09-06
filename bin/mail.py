@@ -108,6 +108,24 @@ class Mail(Script):
             required_on_create=False
         )
         scheme.add_argument(include_headers)
+        maintain_rfc = Argument(
+            name="maintain_rfc",
+            title="Maintain RFC compatability",
+            validation="is_bool('maintain_rfc')",
+            data_type=Argument.data_type_boolean,
+            required_on_edit=False,
+            required_on_create=False
+        )
+        scheme.add_argument(maintain_rfc)
+        attach_message_primary = Argument(
+            name="attach_message_primary",
+            title="Attached messages become primary",
+            validation="is_bool('attach_message_primary')",
+            data_type=Argument.data_type_boolean,
+            required_on_edit=False,
+            required_on_create=False
+        )
+        scheme.add_argument(attach_message_primary)
         return scheme
 
     # noinspection PyShadowingNames
@@ -131,7 +149,8 @@ class Mail(Script):
         """
         kwargs = dict(host=self.mailserver, password=PASSWORD_PLACEHOLDER, mailserver=self.mailserver,
                       is_secure=self.is_secure, protocol=self.protocol,
-                      mailbox_cleanup=self.mailbox_cleanup, include_headers=self.include_headers)
+                      mailbox_cleanup=self.mailbox_cleanup, include_headers=self.include_headers, 
+                      maintain_rfc=self.maintain_rfc, attach_message_primary=self.attach_message_primary)
         try:
             self.service.inputs[self.username].update(**kwargs).refresh()
         except Exception, e:
@@ -259,7 +278,12 @@ class Mail(Script):
                     result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
                     if result == 'OK':
                         raw_email = email_data[0][1]
-                        message_time, message_mid, msg = email_mime.parse_email(raw_email, self.include_headers)
+                        message_time, message_mid, msg = email_mime.parse_email(
+                            raw_email, 
+                            self.include_headers,
+                            self.maintain_rfc,
+                            self.attach_message_primary,
+                        )
                         if locate_checkpoint(self.checkpoint_dir, message_mid) and (
                                         self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                             mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
@@ -319,7 +343,12 @@ class Mail(Script):
                 num += 1
                 (header, msg, octets) = mailclient.retr(num)
                 raw_email = '\n'.join(msg)
-                message_time, message_mid, msg = email_mime.parse_email(raw_email, self.include_headers)
+                message_time, message_mid, msg = email_mime.parse_email(
+                    raw_email, 
+                    self.include_headers, 
+                    self.maintain_rfc,
+                    self.attach_message_primary,
+                )
                 if not locate_checkpoint(self.checkpoint_dir, message_mid):
                     """index the mail if it is readonly or if the mail will be deleted"""
                     logevent = Event(
@@ -364,6 +393,9 @@ class Mail(Script):
         self.password = input_item["password"]
         self.protocol = input_item['protocol']
         self.include_headers = bool_variable(input_item['include_headers']) or DEFAULT_INCLUDE_HEADERS
+        self.maintain_rfc = bool_variable(input_item['maintain_rfc']) or DEFAULT_MAINTAIN_RFC
+        self.attach_message_primary = \
+            bool_variable(input_item['attach_message_primary']) or DEFAULT_ATTACH_MESSAGE_PRIMARY
         self.is_secure = bool_variable(input_item["is_secure"]) or DEFAULT_PROTOCOL_SECURITY
         self.mailbox_cleanup = input_item['mailbox_cleanup'] or DEFAULT_MAILBOX_CLEANUP
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
