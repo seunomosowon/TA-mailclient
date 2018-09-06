@@ -66,6 +66,10 @@ def bool_variable(x):
         x = True
     elif x == "disabled":
         x = False
+    elif x == "True":
+        x = True
+    elif x == "False":
+        x = False
     elif x is "1" or x is "0":
         x = bool(int(x))
     else:
