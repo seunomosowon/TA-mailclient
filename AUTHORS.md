@@ -11,3 +11,4 @@ Contributors
 ------------
 
 * [François Lacombe](mailto:flacombe@adista.fr)
+* [Nathan Worsham](mailto:nworsham@gmail.com)
