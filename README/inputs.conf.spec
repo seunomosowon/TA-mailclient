@@ -22,3 +22,9 @@ mailbox_cleanup = [delete,delayed,readonly]
 
 include_headers =  <bool>
 * This determines if email headers should be included.
+
+maintain_rfc =  <bool>
+* This determines if email will still maintain RFC compatability for parsing tools
+
+attach_message_primary =  <bool>
+* This determines if an attached message will instead be the indexed email (assuming the outer message was just the delivery mechanism)
