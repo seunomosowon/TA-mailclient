@@ -18,21 +18,18 @@ before_install:
   - sudo iptables -I INPUT -p tcp --dport $SPLKMGMT -j ACCEPT || true
   # Start Docker container
   - docker create --name autobuild_$SPLKMGMT --hostname autobuild -v /opt/splunk/etc/apps
-    -e "SPLUNK_START_ARGS=--accept-license" -p "$SPLKMGMT:8089" -e "SPLUNK_USER=splunk"
-    -e SPLUNK_CMD='edit user admin -password random_password -role admin -auth admin:changeme'
+    -e "SPLUNK_START_ARGS=--accept-license --answer-yes --seed-passwd $RANDOM_PASSWORD" -p "$SPLKMGMT:8089" -e "SPLUNK_USER=splunk"
     splunk/splunk:$SPLUNK_VERSION
   - echo "`date -u` - Starting container"
   - docker start autobuild_$SPLKMGMT
   - for i in `seq 0 5 100`; 
-    do if curl --fail -k -u admin:random_password https://localhost:$SPLKMGMT/services/server/info &> /dev/null;
+    do if curl --fail -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/server/info &> /dev/null;
     then break;
     fi;
     echo "`date -u` - Waited $i seconds for container to start" ; sleep 5 ;
     if [ 100 -eq "$i" ]; then exit -1 ; fi ; done
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk status
   - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk version
-  - echo "`date -u` - Changing default admin password"
-  - docker exec autobuild_$SPLKMGMT entrypoint.sh splunk edit user admin -password $RANDOM_PASSWORD -role admin -auth admin:random_password
 
 install:
   - echo "`date -u` - Installing TA"
@@ -67,8 +64,8 @@ env:
   matrix:
     - SPLUNK_VERSION=latest SPLKMGMT=9900 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3 EMAIL_DOMAIN=gmx.com
     - SPLUNK_VERSION=latest SPLKMGMT=9901 IS_SECURE=1 MAILSERVER=imap.gmx.com PROTO=IMAP EMAIL_DOMAIN=gmx.com
-    - SPLUNK_VERSION=6.6.3 SPLKMGMT=9902 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3 EMAIL_DOMAIN=gmx.com
-      # - SPLUNK_VERSION=6.5.5 SPLKMGMT=9903 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3 EMAIL_DOMAIN=gmx.com
+    # - SPLUNK_VERSION=6.6.3 SPLKMGMT=9902 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3 EMAIL_DOMAIN=gmx.com
+    # - SPLUNK_VERSION=6.5.5 SPLKMGMT=9903 IS_SECURE=1 MAILSERVER=pop.gmx.com PROTO=POP3 EMAIL_DOMAIN=gmx.com
     - SPLUNK_VERSION=latest SPLKMGMT=9904 IS_SECURE=0 MAILSERVER=pop.aol.com PROTO=POP3 EMAIL_DOMAIN=aol.com
     - SPLUNK_VERSION=latest SPLKMGMT=9905 IS_SECURE=0 MAILSERVER=imap.aol.com PROTO=IMAP EMAIL_DOMAIN=aol.com
   global:

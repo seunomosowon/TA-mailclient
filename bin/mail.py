@@ -384,6 +384,8 @@ class Mail(Script):
         :param ew: an EventWriter object
         :type ew: EventWriter
         """
+        self.log = ew.log
+        self.write_event = ew.write_event
         input_list = inputs.inputs.popitem()
         """This runs just once since the default self.use_single_instance = False"""
         input_name, input_item = input_list
@@ -392,18 +394,32 @@ class Mail(Script):
         self.username = input_name.split("://")[1]
         self.password = input_item["password"]
         self.protocol = input_item['protocol']
-        self.include_headers = bool_variable(input_item['include_headers']) or DEFAULT_INCLUDE_HEADERS
-        self.maintain_rfc = bool_variable(input_item['maintain_rfc']) or DEFAULT_MAINTAIN_RFC
-        self.attach_message_primary = \
-            bool_variable(input_item['attach_message_primary']) or DEFAULT_ATTACH_MESSAGE_PRIMARY
-        self.is_secure = bool_variable(input_item["is_secure"]) or DEFAULT_PROTOCOL_SECURITY
-        self.mailbox_cleanup = input_item['mailbox_cleanup'] or DEFAULT_MAILBOX_CLEANUP
+        #Optional Parameters
+        if 'include_headers' in input_item.keys():
+            self.include_headers = bool_variable(input_item['include_headers'])
+        else:
+            self.include_headers = DEFAULT_INCLUDE_HEADERS
+        if 'maintain_rfc' in input_item.keys():
+            self.maintain_rfc = bool_variable(input_item['maintain_rfc'])
+        else:
+            self.maintain_rfc = DEFAULT_MAINTAIN_RFC
+        if 'attach_message_primary' in input_item.keys():
+            self.attach_message_primary = bool_variable(input_item['attach_message_primary'])
+        else:
+            self.attach_message_primary = DEFAULT_ATTACH_MESSAGE_PRIMARY
+        if 'is_secure' in input_item.keys():
+            self.is_secure = bool_variable(input_item["is_secure"])
+        else:
+            self.is_secure = DEFAULT_PROTOCOL_SECURITY
+        if 'mailbox_cleanup' in input_item.keys():
+            self.mailbox_cleanup = input_item['mailbox_cleanup']
+        else:
+            self.mailbox_cleanup = DEFAULT_MAILBOX_CLEANUP
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
-        self.log = ew.log
-        self.write_event = ew.write_event
         if not self.is_secure:
             self.log(EventWriter.WARN, "Mail retrieval will not be secure!!"
-                                       "This will be unsupported in a future release")
+                                       "This violates security recommendations for mail retrieval.")
+        # The only thing preventing this app's certification is support for fetching insecure mails.
         match = re.match(REGEX_EMAIL, str(self.username))
         if not match:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
