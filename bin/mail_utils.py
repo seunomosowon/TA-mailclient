@@ -36,7 +36,7 @@ def save_checkpoint(checkpoint_dir, msg):
     :param msg: Contains a message that needs to indexed and
      :type msg: basestring
     """
-    filename = os.path.join(checkpoint_dir, hashlib.sha256(binary_type(msg, "utf8", "backslashreplace")).hexdigest())
+    filename = os.path.join(checkpoint_dir, hashlib.sha256(msg.encode("utf8", "backslashreplace")).hexdigest())
     f = open(filename, 'w')
     f.close()
 
@@ -52,7 +52,7 @@ def locate_checkpoint(checkpoint_dir, msg):
     :return: Returns true if the message has been indexed previously, and false if not.
      :rtype: bool
     """
-    filename = os.path.join(checkpoint_dir, hashlib.sha256(binary_type(msg, "utf8", "backslashreplace")).hexdigest())
+    filename = os.path.join(checkpoint_dir, hashlib.sha256(msg.encode("utf8", "backslashreplace")).hexdigest())
     try:
         open(filename, 'r').close()
     except (OSError, IOError):

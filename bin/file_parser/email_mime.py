@@ -16,8 +16,10 @@ try:
 except ImportError:
     # Python 2
     from email.Parser import Parser
+
 from email.utils import mktime_tz, parsedate_tz
 from .utils import *
+
 
 def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_primary):
     """
