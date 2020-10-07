@@ -7,6 +7,7 @@ import poplib
 # import libraries required
 import re
 import sys
+import traceback
 from ssl import SSLError
 
 from mail_constants import *
@@ -376,6 +377,12 @@ class Mail(Script):
             self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
 
     def stream_events(self, inputs, ew):
+        try:
+            self._stream_events(inputs, ew)
+        except Exception as e:
+            self.log(EventWriter.ERROR, "Top level exception:  %s\n%s" % (e, traceback.format_exc()))
+
+    def _stream_events(self, inputs, ew):
         """This function handles all the action: splunk calls this modular input
         without arguments, streams XML describing the inputs to stdin, and waits
         for XML on stdout describing events.
@@ -434,7 +441,7 @@ class Mail(Script):
         elif "IMAP" == self.protocol:
             self.stream_imap_emails()
         else:
-            ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
+            ew.log(EventWriter.ERROR, "Protocol must be either POP3 or IMAP")
             self.disable_input()
             raise MailExceptionInvalidProtocol
 

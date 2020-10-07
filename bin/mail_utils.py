@@ -74,10 +74,10 @@ def bool_variable(x):
         x = True
     elif x == "False":
         x = False
-    elif x is "1" or x is "0":
+    elif x == "1" or x == "0":
         x = bool(int(x))
     else:
-        x = bool(int(1))
+        x = True
     return x
 
 
