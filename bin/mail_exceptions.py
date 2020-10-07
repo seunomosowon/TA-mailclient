@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 """This contains exceptions defined for the Mail scheme"""
 
 

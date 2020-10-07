@@ -1,5 +1,7 @@
 #!/opt/splunk/bin/python
 
+from __future__ import unicode_literals
+
 import imaplib
 import poplib
 # import libraries required

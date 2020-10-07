@@ -1,6 +1,7 @@
 """
 This includes common functions that are required when dealing with mails
 """
+from __future__ import unicode_literals
 
 from email.header import decode_header
 from io import StringIO
@@ -24,7 +25,7 @@ def getheader(header_text, default="ascii"):
     """ This decodes sections of the email header which could be represented in utf8 or other iso languages"""
     headers = decode_header(header_text)
     header_sections = [unicode(text, charset or default, "ignore") for text, charset in headers]
-    return u"".join(header_sections)
+    return "".join(header_sections)
 
 
 def recode_mail(part):
@@ -33,7 +34,7 @@ def recode_mail(part):
         cset = "ascii"
     try:
         if not part.get_payload(decode=True):
-            result = u''
+            result = ""
         else:
             result = unicode(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
     except TypeError:

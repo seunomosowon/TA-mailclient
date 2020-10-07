@@ -1,4 +1,5 @@
 """ Parse .docx files """
+from __future__ import unicode_literals
 
 from .utils import *
 from xml.dom.minidom import parse as parsexml
@@ -38,7 +39,7 @@ def parse_docx(part, part_name):
         """
         if zfp.getinfo('word/document.xml'):
             doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
-            return_doc.append(u''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')]))
+            return_doc.append(''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')]))
         else:
             return_doc.append('#UNSUPPORTED_DOCX_FILE: file_name = %s' % zip_name)
     else:
