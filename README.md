@@ -43,8 +43,8 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.3.0 |
-| Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.2</li></ul> |
+| App Version | 1.4.0 |
+| Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
 using either POP3 or IMAP, with or without SSL.
@@ -60,7 +60,7 @@ A future upgrade might include support for additional mailbox directories.
 
 Be sure to set the interval to run this as frequently as required.
 
-It supports all 'text/*' content types and several well known scripts (.bat, .js, .sh) detailed below:
+It supports all 'text/\*' content types and several well known scripts (.bat, .js, .sh) detailed below:
 
 ```
 'application/xml'
@@ -78,7 +78,8 @@ Images, videos and executables are not indexed.
 ##### Scripts and binaries
 
 Includes:
-- Splunk SDK for Python (1.6.2)
+- Splunk SDK for Python (1.6.14)
+- Six python 2/3 compatibility (1.15.0)
 - mail_lib - supports the calculation of vincenty distances which is used by default
     - constants.py - A number of constants / defaults used throughout the mail_lib module.
     - mail_common.py - Shared functions used to parse emails and attachments
@@ -87,9 +88,10 @@ Includes:
 #### Release notes
 
 ##### About this release
-Version 1.3.0 of the TA-mailclient is compatible with:
 
-| Splunk Enterprise versions | 6.x |
+Version 1.4.0 of the TA-mailclient is compatible with:
+
+| Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
 | CIM | Not Applicable |
 | Platforms | Platform independent |
@@ -108,20 +110,9 @@ as it requires Python which comes with an HF or a full Splunk install.
 
 TA-mailclient includes the following new features:
 
-- Made it more modular to supporting more file types in zips and in emails
-- Added support for zips and files within zips
-- Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
-    - Also added static mail preamble for line break. Event breaking configuration may not be
-    required since the modular input writes individual events separately, but it's always a good idea.
-- Additional logging from pop3 / imap 
-- Removed interval from inputs.conf.spec
-- Upgraded Splunk SDK to 1.6.2
-- Added additional test cases on Travis CI to test that functionality work
-- modularized storage/password functions to make them reusable and simpler
-- Also fixed exception handling when dealing with storage/password
-- Fixed type casting for boolean parameters (is\_secure, include\_headers) and port validation
-- Rewrote sections of mail\_common
-- Merged functions from poputils / imaputils into main code and added additional logs from connection
+- Added support for Python 3
+- Added six 1.15.0
+- Upgraded Splunk SDK to 1.6.14
 
 ##### To Do
 
@@ -144,6 +135,22 @@ Current contributors are listed in AUTHORS.md.
 
 
 ##### Older Releases
+
+* v1.3.0
+    * Made it more modular to supporting more file types in zips and in emails
+    * Added support for zips and files within zips
+    * Fixed unicode conversion of emails following contributions from Francois Lacombe on GitHub
+        - Also added static mail preamble for line break. Event breaking configuration may not be
+          required since the modular input writes individual events separately, but it's always a good idea.
+    *  Additional logging from pop3 / imap 
+    *  Removed interval from inputs.conf.spec
+    *  Upgraded Splunk SDK to 1.6.2
+    *  Added additional test cases on Travis CI to test that functionality work
+    *  modularized storage/password functions to make them reusable and simpler
+    *  Also fixed exception handling when dealing with storage/password
+    *  Fixed type casting for boolean parameters (is\_secure, include\_headers) and port validation
+    *  Rewrote sections of mail\_common
+    *  Merged functions from poputils / imaputils into main code and added additional logs from connection
 
 * v0.5.1
     * encoding corrections
