@@ -4,12 +4,16 @@
 import email
 import re
 import os
-import zip
+from . import zip
 import hashlib
 import quopri
 # noinspection PyUnresolvedReferences
 from base64 import b64decode
-from email.Parser import Parser
+try:
+    from email.parser import Parser
+except ImportError:
+    # Python 2
+    from email.Parser import Parser
 from email.utils import mktime_tz, parsedate_tz
 from .utils import *
 

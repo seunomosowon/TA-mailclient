@@ -3,12 +3,7 @@ This includes common functions that are required when dealing with mails
 """
 
 from email.header import decode_header
-
-try:
-    from cStringIO import StringIO
-    # cStringIO is faster
-except ImportError:
-    from StringIO import StringIO
+from io import StringIO
 
 MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
 ZIP_EXTENSIONS = {'.zip', '.docx'}

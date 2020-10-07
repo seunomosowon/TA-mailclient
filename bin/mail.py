@@ -153,7 +153,7 @@ class Mail(Script):
                       maintain_rfc=self.maintain_rfc, attach_message_primary=self.attach_message_primary)
         try:
             self.service.inputs[self.username].update(**kwargs).refresh()
-        except Exception, e:
+        except Exception as e:
             self.disable_input()
             raise Exception("Error updating inputs.conf - %s" % e)
 
@@ -181,7 +181,7 @@ class Mail(Script):
         storagepasswords = self.service.storage_passwords
         try:
             sp = storagepasswords.create(password=self.password, username=self.username, realm=self.realm)
-        except Exception, e:
+        except Exception as e:
             self.disable_input()
             raise Exception("Could not create password entry {%s:%s} in passwords.conf: %s" % (
                 self.username, self.realm, e))
@@ -193,7 +193,7 @@ class Mail(Script):
         """
         try:
             self.service.storage_passwords.delete(self.username, self.realm)
-        except Exception, e:
+        except Exception as e:
             self.disable_input()
             raise Exception("Could not delete credential {%s:%s} from passwords.conf: %s" % (
                 self.username, self.realm, e))
@@ -324,7 +324,7 @@ class Mail(Script):
                 mailclient = poplib.POP3(host=self.mailserver)
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
-        except poplib.error_proto, e:
+        except poplib.error_proto as e:
             """Some kind of poplib exception: EOF or other"""
             raise MailProtocolError(str(e))
         try:

@@ -1,7 +1,7 @@
 """Parse zip files"""
 
 from .utils import *
-import docx
+from . import docx
 import os
 import zipfile
 

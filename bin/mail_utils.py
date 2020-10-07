@@ -20,7 +20,7 @@ def mail_connectivity_test(server, protocol, is_secure):
         s.settimeout(1)
         s.connect((captive_dns_addr, get_mail_port(protocol=protocol, is_secure=is_secure)))
         s.close()
-    except socket.error, e:
+    except socket.error as e:
         raise socket.error("Socket error : %s" % e)
 
 
