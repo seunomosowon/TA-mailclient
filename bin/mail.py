@@ -280,6 +280,7 @@ class Mail(Script):
                     result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
                     if result == 'OK':
                         raw_email = email_data[0][1]
+                        raw_email = raw_email.decode("ascii", "replace")
                         message_time, message_mid, msg = email_mime.parse_email(
                             raw_email, 
                             self.include_headers,
@@ -422,7 +423,7 @@ class Mail(Script):
             self.log(EventWriter.WARN, "Mail retrieval will not be secure!!"
                                        "This violates security recommendations for mail retrieval.")
         # The only thing preventing this app's certification is support for fetching insecure mails.
-        match = re.match(REGEX_EMAIL, str(self.username))
+        match = re.match(REGEX_EMAIL, self.username)
         if not match:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
             self.disable_input()

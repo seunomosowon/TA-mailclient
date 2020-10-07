@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 from email.header import decode_header
 from io import StringIO
+from six import text_type, binary_type
 
 MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
 ZIP_EXTENSIONS = {'.zip', '.docx'}
@@ -24,7 +25,7 @@ No need to add this to the supported types list
 def getheader(header_text, default="ascii"):
     """ This decodes sections of the email header which could be represented in utf8 or other iso languages"""
     headers = decode_header(header_text)
-    header_sections = [unicode(text, charset or default, "ignore") for text, charset in headers]
+    header_sections = [text if isinstance(text, text_type) else text_type(text, charset or default, "ignore") for text, charset in headers]
     return "".join(header_sections)
 
 
@@ -36,7 +37,9 @@ def recode_mail(part):
         if not part.get_payload(decode=True):
             result = ""
         else:
-            result = unicode(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
+            result = text_type(part.get_payload(decode=True), cset, "ignore").encode('utf8', 'xmlcharrefreplace').strip()
     except TypeError:
-        result = part.get_payload(decode=True).encode('utf8', 'xmlcharrefreplace').strip()
+        result = part.get_payload(decode=True)
+        if isinstance(result, text_type):
+            result = result.encode('utf8', 'xmlcharrefreplace').strip()
     return result
