@@ -1,10 +1,13 @@
 #!/opt/splunk/bin/python
 
+from __future__ import unicode_literals
+
 import imaplib
 import poplib
 # import libraries required
 import re
 import sys
+import traceback
 from ssl import SSLError
 
 from mail_constants import *
@@ -153,7 +156,7 @@ class Mail(Script):
                       maintain_rfc=self.maintain_rfc, attach_message_primary=self.attach_message_primary)
         try:
             self.service.inputs[self.username].update(**kwargs).refresh()
-        except Exception, e:
+        except Exception as e:
             self.disable_input()
             raise Exception("Error updating inputs.conf - %s" % e)
 
@@ -181,7 +184,7 @@ class Mail(Script):
         storagepasswords = self.service.storage_passwords
         try:
             sp = storagepasswords.create(password=self.password, username=self.username, realm=self.realm)
-        except Exception, e:
+        except Exception as e:
             self.disable_input()
             raise Exception("Could not create password entry {%s:%s} in passwords.conf: %s" % (
                 self.username, self.realm, e))
@@ -193,7 +196,7 @@ class Mail(Script):
         """
         try:
             self.service.storage_passwords.delete(self.username, self.realm)
-        except Exception, e:
+        except Exception as e:
             self.disable_input()
             raise Exception("Could not delete credential {%s:%s} from passwords.conf: %s" % (
                 self.username, self.realm, e))
@@ -278,6 +281,7 @@ class Mail(Script):
                     result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
                     if result == 'OK':
                         raw_email = email_data[0][1]
+                        raw_email = raw_email.decode("ascii", "replace")
                         message_time, message_mid, msg = email_mime.parse_email(
                             raw_email, 
                             self.include_headers,
@@ -324,7 +328,7 @@ class Mail(Script):
                 mailclient = poplib.POP3(host=self.mailserver)
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
-        except poplib.error_proto, e:
+        except poplib.error_proto as e:
             """Some kind of poplib exception: EOF or other"""
             raise MailProtocolError(str(e))
         try:
@@ -373,6 +377,12 @@ class Mail(Script):
             self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
 
     def stream_events(self, inputs, ew):
+        try:
+            self._stream_events(inputs, ew)
+        except Exception as e:
+            self.log(EventWriter.ERROR, "Top level exception:  %s\n%s" % (e, traceback.format_exc()))
+
+    def _stream_events(self, inputs, ew):
         """This function handles all the action: splunk calls this modular input
         without arguments, streams XML describing the inputs to stdin, and waits
         for XML on stdout describing events.
@@ -420,7 +430,7 @@ class Mail(Script):
             self.log(EventWriter.WARN, "Mail retrieval will not be secure!!"
                                        "This violates security recommendations for mail retrieval.")
         # The only thing preventing this app's certification is support for fetching insecure mails.
-        match = re.match(REGEX_EMAIL, str(self.username))
+        match = re.match(REGEX_EMAIL, self.username)
         if not match:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
             self.disable_input()
@@ -431,7 +441,7 @@ class Mail(Script):
         elif "IMAP" == self.protocol:
             self.stream_imap_emails()
         else:
-            ew.log(EventWriter.DEBUG, "Protocol must be either POP3 or IMAP")
+            ew.log(EventWriter.ERROR, "Protocol must be either POP3 or IMAP")
             self.disable_input()
             raise MailExceptionInvalidProtocol
 

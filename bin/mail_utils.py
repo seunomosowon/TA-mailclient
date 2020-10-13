@@ -1,3 +1,7 @@
+from __future__ import unicode_literals
+
+from six import text_type, binary_type
+
 import hashlib
 import os
 import socket
@@ -20,7 +24,7 @@ def mail_connectivity_test(server, protocol, is_secure):
         s.settimeout(1)
         s.connect((captive_dns_addr, get_mail_port(protocol=protocol, is_secure=is_secure)))
         s.close()
-    except socket.error, e:
+    except socket.error as e:
         raise socket.error("Socket error : %s" % e)
 
 
@@ -32,7 +36,7 @@ def save_checkpoint(checkpoint_dir, msg):
     :param msg: Contains a message that needs to indexed and
      :type msg: basestring
     """
-    filename = os.path.join(checkpoint_dir, hashlib.sha256(str(msg)).hexdigest())
+    filename = os.path.join(checkpoint_dir, hashlib.sha256(msg.encode("utf8", "backslashreplace")).hexdigest())
     f = open(filename, 'w')
     f.close()
 
@@ -48,7 +52,7 @@ def locate_checkpoint(checkpoint_dir, msg):
     :return: Returns true if the message has been indexed previously, and false if not.
      :rtype: bool
     """
-    filename = os.path.join(checkpoint_dir, hashlib.sha256(str(msg)).hexdigest())
+    filename = os.path.join(checkpoint_dir, hashlib.sha256(msg.encode("utf8", "backslashreplace")).hexdigest())
     try:
         open(filename, 'r').close()
     except (OSError, IOError):
@@ -70,10 +74,10 @@ def bool_variable(x):
         x = True
     elif x == "False":
         x = False
-    elif x is "1" or x is "0":
+    elif x == "1" or x == "0":
         x = bool(int(x))
     else:
-        x = bool(int(1))
+        x = True
     return x
 
 

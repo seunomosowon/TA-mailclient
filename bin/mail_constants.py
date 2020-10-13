@@ -1,4 +1,6 @@
 # DEFAULTS
+from __future__ import unicode_literals
+
 IMAP_READONLY_FLAG = True
 INDEX_ATTACHMENT_DEFAULT = True
 DEFAULT_INCLUDE_HEADERS = True

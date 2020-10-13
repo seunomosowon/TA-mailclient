@@ -1,17 +1,25 @@
 """ Parse emails files """
+from __future__ import unicode_literals
 
+from six import text_type, binary_type
 
 import email
 import re
 import os
-import zip
+from . import zip
 import hashlib
 import quopri
 # noinspection PyUnresolvedReferences
 from base64 import b64decode
-from email.Parser import Parser
+try:
+    from email.parser import Parser
+except ImportError:
+    # Python 2
+    from email.Parser import Parser
+
 from email.utils import mktime_tz, parsedate_tz
 from .utils import *
+
 
 def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_primary):
     """
@@ -72,7 +80,7 @@ def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_p
         """mail_for_index = [MESSAGE_PREAMBLE]"""
         mail_for_index = []
         mail_for_index.extend(headers + body)
-        index_mail = "\n".join(mail_for_index)
+        index_mail = "\n".join(s.decode("utf-8") if isinstance(s,  binary_type) else s for s in mail_for_index)
     message_time = float(mktime_tz(parsedate_tz(message['Date'])))
     return [message_time, message['Message-ID'], index_mail]
 
