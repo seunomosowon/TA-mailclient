@@ -71,17 +71,6 @@ class Mail(Script):
             required_on_create=True
         )
         scheme.add_argument(mailserver)
-        is_secure = Argument(
-            name="is_secure",
-            title="UseSSL",
-            description="Enable Protocol over SSL",
-            validation="is_bool('is_secure')",
-            data_type=Argument.data_type_boolean,
-            required_on_edit=True,
-            required_on_create=True
-        )
-        # bool arguments don't display description
-        scheme.add_argument(is_secure)
         password = Argument(
             name="password",
             title="Account Password",
@@ -138,22 +127,21 @@ class Mail(Script):
         If validate_input does not raise an Exception, the input is assumed to be valid.
         """
         mailserver = validation_definition.parameters["mailserver"]
-        is_secure = bool_variable(validation_definition.parameters["is_secure"])
         protocol = validation_definition.parameters["protocol"]
         email_address = validation_definition.metadata["name"]
         match = re.match(REGEX_EMAIL, email_address)
         if not match:
             raise MailExceptionStanzaNotEmail(email_address)
-        mail_connectivity_test(server=mailserver, protocol=protocol, is_secure=is_secure)
+        mail_connectivity_test(server=mailserver, protocol=protocol)
 
     def mask_input_password(self):
         """
         This encrypts the password stored in inputs.conf for the input name passed as an argument.
         """
         kwargs = dict(host=self.mailserver, password=PASSWORD_PLACEHOLDER, mailserver=self.mailserver,
-                      is_secure=self.is_secure, protocol=self.protocol,
-                      mailbox_cleanup=self.mailbox_cleanup, include_headers=self.include_headers, 
-                      maintain_rfc=self.maintain_rfc, attach_message_primary=self.attach_message_primary)
+                      protocol=self.protocol, mailbox_cleanup=self.mailbox_cleanup,
+                      include_headers=self.include_headers, maintain_rfc=self.maintain_rfc,
+                      attach_message_primary=self.attach_message_primary)
         try:
             self.service.inputs[self.username].update(**kwargs).refresh()
         except Exception as e:
@@ -243,10 +231,7 @@ class Mail(Script):
         """
         # Define local variables
         credential = self.get_credential()
-        if self.is_secure is True:
-            mailclient = imaplib.IMAP4_SSL(self.mailserver)
-        else:
-            mailclient = imaplib.IMAP4(self.mailserver)
+        mailclient = imaplib.IMAP4_SSL(self.mailserver)
         try:
             # mailclient.debug = 4
             self.log(EventWriter.INFO, "IMAP - Connecting to mailbox as %s" % self.username)
@@ -322,10 +307,7 @@ class Mail(Script):
         """
         credential = self.get_credential()
         try:
-            if self.is_secure:
-                mailclient = poplib.POP3_SSL(host=self.mailserver)
-            else:
-                mailclient = poplib.POP3(host=self.mailserver)
+            mailclient = poplib.POP3_SSL(host=self.mailserver)
         except (socket.error, SSLError) as e:
             raise MailConnectionError(e)
         except poplib.error_proto as e:
@@ -345,8 +327,9 @@ class Mail(Script):
         if num_of_messages > 0:
             while num != num_of_messages:
                 num += 1
-                (header, msg, octets) = mailclient.retr(num)
-                raw_email = '\n'.join(msg)
+                (header, lines, octets) = mailclient.retr(num)
+                # raw_email = '\n'.join(lines)
+                raw_email = b'\n'.join(lines).decode('utf-8')
                 message_time, message_mid, msg = email_mime.parse_email(
                     raw_email, 
                     self.include_headers, 
@@ -417,19 +400,11 @@ class Mail(Script):
             self.attach_message_primary = bool_variable(input_item['attach_message_primary'])
         else:
             self.attach_message_primary = DEFAULT_ATTACH_MESSAGE_PRIMARY
-        if 'is_secure' in input_item.keys():
-            self.is_secure = bool_variable(input_item["is_secure"])
-        else:
-            self.is_secure = DEFAULT_PROTOCOL_SECURITY
         if 'mailbox_cleanup' in input_item.keys():
             self.mailbox_cleanup = input_item['mailbox_cleanup']
         else:
             self.mailbox_cleanup = DEFAULT_MAILBOX_CLEANUP
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
-        if not self.is_secure:
-            self.log(EventWriter.WARN, "Mail retrieval will not be secure!!"
-                                       "This violates security recommendations for mail retrieval.")
-        # The only thing preventing this app's certification is support for fetching insecure mails.
         match = re.match(REGEX_EMAIL, self.username)
         if not match:
             ew.log(EventWriter.ERROR, "Modular input name must be an email address")
