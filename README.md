@@ -97,6 +97,8 @@ Version 1.4.0 of the TA-mailclient is compatible with:
 | Platforms | Platform independent |
 | Lookup file changes | No lookups included in this app |
 
+This version does not support unencrypted connections to mailboxes. It supports IMAP on Splunk v7.x and 8.x, while POP3 is only supported on v8.x.
+
 The administrator is responsible for setting the sourcetype to whatever is desired,
 as well as extracting CIM fields for the sourcetype.
 This app already includes several extractions for different parts of the message that can be reused.
@@ -121,7 +123,8 @@ TA-mailclient includes the following new features:
 
 ##### Known issues
 
-Currently no known issues in version 1.3.0 of TA-mailclient.
+- This version does not support retrieving mails using POP3 on Splunk v7.x. It works when using IMAP.
+
 This is currently tested against the latest version of Splunk Enterprise.
 Issues can be reported and tracked on Github at this time.
 
@@ -135,7 +138,8 @@ Current contributors are listed in AUTHORS.md.
 
 
 ##### Older Releases
-
+* v1.3.5
+    * Fixed bug introduced  in v1.3.0
 * v1.3.0
     * Made it more modular to supporting more file types in zips and in emails
     * Added support for zips and files within zips
