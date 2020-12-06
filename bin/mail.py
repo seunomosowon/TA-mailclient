@@ -10,6 +10,7 @@ import sys
 import traceback
 from ssl import SSLError
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lib"))
 from mail_constants import *
 from mail_exceptions import *
 from mail_utils import *
