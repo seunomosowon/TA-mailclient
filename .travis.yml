@@ -22,10 +22,10 @@ install:
 - echo "`date -u` - Installing TA"
 - docker cp $TRAVIS_BUILD_DIR autobuild_$SPLKMGMT:/opt/splunk/etc/apps/
 - docker exec autobuild_$SPLKMGMT sudo mkdir /opt/splunk/etc/apps/TA-mailclient/local/
-- docker exec autobuild_$SPLKMGMT sudo bash -c "echo -e '[mail://pop_to_splunk@$EMAIL_DOMAIN]\npassword=$MB_PASSWD\nprotocol
-  = $PROTO\ndisabled = 0\nhost = $MAILSERVER\ninclude_headers = 0\ninterval = 30\nis_secure
-  = $IS_SECURE\nmailbox_cleanup = readonly\nmailserver = $MAILSERVER\nsourcetype =
-  mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
+- docker exec autobuild_$SPLKMGMT sudo bash -c "echo -e '[mail://pop_to_splunk@$EMAIL_DOMAIN]\npassword=$MB_PASSWD\n
+  protocol = $PROTO\ndisabled = 0\nhost = $MAILSERVER\ninclude_headers = 0\ninterval = 30\n
+  mailbox_cleanup = readonly\nmailserver = $MAILSERVER\n
+  sourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
 - docker exec autobuild_$SPLKMGMT sudo chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
 - echo "`date -u` - Restarting splunk"
 - curl -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/server/control/restart
@@ -60,15 +60,15 @@ script:
   -d earliest="-1h" -d latest=now
 env:
   matrix:
-  - SPLUNK_VERSION=latest SPLKMGMT=9900 IS_SECURE=1 MAILSERVER=pop.aol.com PROTO=POP3
+  - SPLUNK_VERSION=latest SPLKMGMT=9900 MAILSERVER=pop.aol.com PROTO=POP3
     EMAIL_DOMAIN=aol.com
-  - SPLUNK_VERSION=latest SPLKMGMT=9901 IS_SECURE=1 MAILSERVER=imap.aol.com PROTO=IMAP
+  - SPLUNK_VERSION=latest SPLKMGMT=9901 MAILSERVER=imap.aol.com PROTO=IMAP
     EMAIL_DOMAIN=aol.com
-  - SPLUNK_VERSION=7.3 SPLKMGMT=9903 IS_SECURE=1 MAILSERVER=imap.aol.com PROTO=IMAP
+  - SPLUNK_VERSION=7.3 SPLKMGMT=9903 MAILSERVER=imap.aol.com PROTO=IMAP
     EMAIL_DOMAIN=aol.com
-  - SPLUNK_VERSION=8.0 SPLKMGMT=9904 IS_SECURE=1 MAILSERVER=pop.aol.com PROTO=POP3
+  - SPLUNK_VERSION=8.0 SPLKMGMT=9904 MAILSERVER=pop.aol.com PROTO=POP3
     EMAIL_DOMAIN=gmx.com
-  - SPLUNK_VERSION=8.0 SPLKMGMT=9905 IS_SECURE=1 MAILSERVER=imap.aol.com PROTO=IMAP
+  - SPLUNK_VERSION=8.0 SPLKMGMT=9905 MAILSERVER=imap.aol.com PROTO=IMAP
     EMAIL_DOMAIN=aol.com
   global:
     secure: j5TuDo9LHLp4jUL27hZy2SX/QK4r0O9Be7iS17ENioZwH+00q2DHJmQpFZAmhdepFBT9Vn4gzEfxCc9wNCNn3wllbEaF9Ex7tq/j5G8aeDx1KRjpGJyCzlp9GO1A/0SPaGSAQzOiPQsZRao4fmZXz5U2yJomzvD234jSAeoYin2jS4UyB0ujj+/E70lggip+8HvanzEsysxOBB+eJoz79dUMM/Cooj+I3JPMU4UhuyR9AA1lx4AeILrQ5OxUcwUvSxZ0oaSSRD6jhu7iTBA2/V/AIe+QCCP8peWvTg5hJiTPzATNZDspALDau76LwSOV4/V8YMHifLopmX/Ac+w7HXsqzrhfIO87Z3KCi2/zXIRf9rLWbo6NCNWOLbw9QBwRqux2N99FCl9Kg7bcH4dm2B1sdKfg83YXGrEFuAAd+0vc6LJ863nPUkxpas9U8TO3dDnXTZsdVp5FCL+XoS99pc8T0zmpBSRS+t9P13rGoRZ8GHGPY2poc84CXMHksDXLIJwvP7SVSs/obpWZlzpa7YZJZyXZYYyVZTrQ5iB3VppXVJ3BnuEcgIY2mXLqAiEyNqUFTA6ezY7Z/28yLi/Q6EMWjL4NdV9o8QVxAQEJ5ZDW7b9wF2meLGPP+JJ3Sks3swrBkdJCG2aZ2Vb3l/lCMtuz4mPmGYfwRFCDzmyqpFs=
