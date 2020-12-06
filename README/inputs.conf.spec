@@ -10,9 +10,6 @@ mailserver = <value>
 password = <value>
 * The password for the account provided in the stanza name
 
-is_secure = <bool>
-* This determines if POPS/IMAPS should be used.
-
 mailbox_cleanup = [delete,delayed,readonly]
 * This determines if the mails should be one of the following:
  * delete: deleted as they are indexed
