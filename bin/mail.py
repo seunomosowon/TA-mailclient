@@ -345,8 +345,9 @@ class Mail(Script):
         if num_of_messages > 0:
             while num != num_of_messages:
                 num += 1
-                (header, msg, octets) = mailclient.retr(num)
-                raw_email = '\n'.join(msg)
+                (header, lines, octets) = mailclient.retr(num)
+                # raw_email = '\n'.join(lines)
+                raw_email = b'\n'.join(lines).decode('utf-8')
                 message_time, message_mid, msg = email_mime.parse_email(
                     raw_email, 
                     self.include_headers, 
