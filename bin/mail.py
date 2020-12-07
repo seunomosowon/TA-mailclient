@@ -6,6 +6,7 @@ import imaplib
 import poplib
 # import libraries required
 import re
+import os
 import sys
 import traceback
 from ssl import SSLError
