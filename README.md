@@ -43,7 +43,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.4.3 |
+| App Version | 1.4.4 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -106,7 +106,7 @@ This app already includes several extractions for different parts of the message
 This app will not work on a universal forwarder,
 as it requires Python which comes with an HF or a full Splunk install.
 
-**Note:** Travis CI includes tests for both secure and insecure versions of POP3 / IMAP. 
+**Note:** Travis CI includes tests for both secure versions of POP3 / IMAP. 
 
 ##### New features
 
@@ -116,6 +116,7 @@ TA-mailclient includes the following new features:
 - Added six 1.15.0
 - Upgraded Splunk SDK to 1.6.14
 - Fix CI/CD tests to work for POP3 on v7.3, fix testing
+- Added Fix for working with Zips and docx with python2/python3
 
 ##### To Do
 
