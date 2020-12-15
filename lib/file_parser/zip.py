@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 
-from six import text_type, binary_type
+from six import text_type, binary_type, StringIO
 from .utils import *
 from . import docx
 import os

@@ -4,8 +4,7 @@ This includes common functions that are required when dealing with mails
 from __future__ import unicode_literals
 
 from email.header import decode_header
-from six import StringIO
-from six import text_type, binary_type
+from six import text_type, binary_type, StringIO
 
 MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
 ZIP_EXTENSIONS = {'.zip', '.docx'}
