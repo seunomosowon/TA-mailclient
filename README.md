@@ -43,7 +43,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.4.5 |
+| App Version | 1.5.0 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -89,7 +89,7 @@ Includes:
 
 ##### About this release
 
-Version 1.4.5 of the TA-mailclient is compatible with:
+Version 1.5.0 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
@@ -117,6 +117,7 @@ TA-mailclient includes the following new features:
 - Upgraded Splunk SDK to 1.6.14
 - Fix CI/CD tests to work for POP3 on v7.3, fix testing
 - Added Fix for working with Zips and docx with python2/python3
+- Added support for indexing emails from additional folders when using IMAP
 
 ##### To Do
 
