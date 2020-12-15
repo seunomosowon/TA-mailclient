@@ -32,7 +32,7 @@ def parse_docx(part, part_name):
         return ['#UNSUPPORTED_ATTACHMENT: %s' % zip_name]
     return_doc = []
     if zfp:
-        return_doc.append(parsexml(zfp.open('[Content_Types].xml', 'rU')).documentElement.toprettyxml())
+        return_doc.append(parsexml(zfp.open('[Content_Types].xml', 'r')).documentElement.toprettyxml())
         """
         I can check for Macros here
         if zfp.getinfo('word/vbaData.xml'):
