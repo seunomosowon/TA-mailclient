@@ -41,7 +41,7 @@ def parse_docx(part, part_name):
         """
         if zfp.getinfo('word/document.xml'):
             doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
-            return_doc.append(''.join(ensure_str([node.firstChild.nodeValue) for node in doc_xml.getElementsByTagName('w:t')]))
+            return_doc.append(''.join([ensure_str(node.firstChild.nodeValue) for node in doc_xml.getElementsByTagName('w:t')]))
         else:
             return_doc.append('#UNSUPPORTED_DOCX_FILE: file_name = %s' % zip_name)
     else:
