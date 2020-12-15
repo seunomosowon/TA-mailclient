@@ -25,3 +25,6 @@ maintain_rfc =  <bool>
 
 attach_message_primary =  <bool>
 * This determines if an attached message will instead be the indexed email (assuming the outer message was just the delivery mechanism)
+
+additional_folders = <value>
+* This suggests additional folders to read messages via IMAP
