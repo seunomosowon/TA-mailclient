@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 from .utils import *
 from xml.dom.minidom import parse as parsexml
+from six import text_type, binary_type, BytesIO
+from six import ensure_binary, ensure_str
 import zipfile
 
 
@@ -23,7 +25,7 @@ def parse_docx(part, part_name):
     else:
         decoded_payload = part
         zip_name = part_name
-    fp = StringIO(decoded_payload)
+    fp = BytesIO(decoded_payload)
     try:
         zfp = zipfile.ZipFile(fp)
     except zipfile.BadZipfile:
@@ -39,7 +41,7 @@ def parse_docx(part, part_name):
         """
         if zfp.getinfo('word/document.xml'):
             doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
-            return_doc.append(''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')]))
+            return_doc.append(''.join(ensure_str([node.firstChild.nodeValue) for node in doc_xml.getElementsByTagName('w:t')]))
         else:
             return_doc.append('#UNSUPPORTED_DOCX_FILE: file_name = %s' % zip_name)
     else:

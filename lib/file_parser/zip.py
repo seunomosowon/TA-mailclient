@@ -1,8 +1,7 @@
 """Parse zip files"""
 from __future__ import unicode_literals
-
-
-from six import text_type, binary_type, StringIO
+from six import text_type, binary_type, BytesIO
+from six import ensure_binary, ensure_str
 from .utils import *
 from . import docx
 import os
@@ -26,12 +25,12 @@ def parse_zip(part, part_name):
     else:
         decoded_payload = part
         zip_name = part_name
-    fp = StringIO(decoded_payload)
+    fp = BytesIO(decoded_payload)
     try:
         zfp = zipfile.ZipFile(fp)
     except zipfile.BadZipfile:
         return ['#UNSUPPORTED_ATTACHMENT: %s' % zip_name]
-    extension = binary_type(os.path.splitext(zip_name)[1]).lower()
+    extension = os.path.splitext(zip_name)[1].lower()
     unzip_content = []
     if zfp:
         ziplist = ['#BEGIN_ZIP_FILELIST: %s' % zip_name]
@@ -44,12 +43,12 @@ def parse_zip(part, part_name):
             for each_compressedfile in zfp.namelist():
                 zipped_file = []
                 if not each_compressedfile.endswith('/'):
-                    zipped_fextension = binary_type(os.path.splitext(each_compressedfile)[1]).lower()
+                    zipped_fextension = text_type(os.path.splitext(each_compressedfile)[1]).lower()
                     zipped_file = ["#BEGIN_ATTACHMENT: %s/%s" % (zip_name, each_compressedfile)]
                     if zipped_fextension in TEXT_FILE_EXTENSIONS:
                         f = zfp.open(each_compressedfile)
                         for line in f:
-                            zipped_file.append(line)
+                            zipped_file.append(ensure_str(line).rstrip('\n'))
                     elif zipped_fextension in ZIP_EXTENSIONS:
                         file_buff = zfp.open(each_compressedfile).read()
                         zipped_file.extend(parse_zip(file_buff, each_compressedfile))
