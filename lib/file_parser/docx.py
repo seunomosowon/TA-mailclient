@@ -40,7 +40,7 @@ def parse_docx(part, part_name):
         Add the contents pages to the top of word file for visual inspection of macros
         """
         if zfp.getinfo('word/document.xml'):
-            doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
+            doc_xml = parsexml(zfp.open('word/document.xml', 'r'))
             return_doc.append(''.join([ensure_str(node.firstChild.nodeValue) for node in doc_xml.getElementsByTagName('w:t')]))
         else:
             return_doc.append('#UNSUPPORTED_DOCX_FILE: file_name = %s' % zip_name)
