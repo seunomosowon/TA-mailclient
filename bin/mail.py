@@ -17,6 +17,7 @@ from mail_exceptions import *
 from mail_utils import *
 from file_parser import *
 from splunklib.modularinput import *
+from six import ensure_str
 
 # Define global variables
 __author__ = 'seunomosowon'
@@ -120,6 +121,16 @@ class Mail(Script):
             required_on_create=False
         )
         scheme.add_argument(attach_message_primary)
+        additional_folders = Argument(
+            name="additional_folders",
+            title="Additional folders",
+            description="comma separated list",
+            validation=".*",
+            data_type=Argument.data_type_string,
+            required_on_edit=False,
+            required_on_create=False
+        )
+        scheme.add_argument(additional_folders)
         return scheme
 
     # noinspection PyShadowingNames
@@ -244,63 +255,68 @@ class Mail(Script):
             raise MailConnectionError(e)
         self.log(EventWriter.INFO, "Listing folders in mailbox=%s" % self.username)
         # with Capturing() as output:
-        mailclient.list()
+        status, imap_list = mailclient.list()
+        if status == 'OK':
+            mail_folder_list = [ensure_str(each_folder).split('"')[-2] for each_folder in imap_list]
+            folders = ','.join(mail_folder_list)
+        self.log(EventWriter.INFO, "Folders found: {}".format(folders))
         # self.log(EventWriter.INFO, "IMAP debug - %s" % output)
         if self.mailbox_cleanup == 'delete' or self.mailbox_cleanup == 'delayed':
             imap_readonly_flag = False
         else:
             self.log(EventWriter.INFO, "Accessing mailbox with readonly attribute")
             imap_readonly_flag = IMAP_READONLY_FLAG
-        """
-        Might want to iterate over all the child folders of inbox in future version
-        And Extend the choise of having this readonly, so mails are saved in mailbox.
-        Need to move all this into a controller object that can work on email.Message.Message
-        """
-        mailclient.select('inbox', readonly=imap_readonly_flag)
-        status, data = mailclient.uid('search', None, 'ALL')
-        if status == 'OK':
-            email_ids = data[0].split()
-            num_of_messages = len(email_ids)
-            if num_of_messages > 0:
-                num = 0
-                mails_retrieved = 0
-                while num != num_of_messages:
-                    result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
-                    if result == 'OK':
-                        raw_email = email_data[0][1]
-                        raw_email = raw_email.decode("ascii", "replace")
-                        message_time, message_mid, msg = email_mime.parse_email(
-                            raw_email, 
-                            self.include_headers,
-                            self.maintain_rfc,
-                            self.attach_message_primary,
-                        )
-                        if locate_checkpoint(self.checkpoint_dir, message_mid) and (
-                                        self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
-                            mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                            mailclient.expunge()
-                            self.log(EventWriter.DEBUG, "Found a mail that had already been indexed: %s" % message_mid)
-                            # if not locate_checkpoint(...): then message deletion has been delayed until next run
-                        elif not locate_checkpoint(self.checkpoint_dir, message_mid):
-                            logevent = Event(
-                                stanza=self.username,
-                                data=msg,
-                                host=self.mailserver,
-                                source=self.input_name,
-                                time="%.3f" % message_time,
-                                done=True,
-                                unbroken=True
+        folder_list = ['inbox']
+        folder_list.extend(self.additional_folders)
+        for each_folder in folder_list:
+            mailclient.select(each_folder, readonly=imap_readonly_flag)
+            status, data = mailclient.uid('search', None, 'ALL')
+            if status == 'OK':
+                email_ids = data[0].split()
+                num_of_messages = len(email_ids)
+                if num_of_messages > 0:
+                    num = 0
+                    mails_retrieved = 0
+                    while num != num_of_messages:
+                        result, email_data = mailclient.uid('fetch', email_ids[num], '(RFC822)')
+                        if result == 'OK':
+                            raw_email = email_data[0][1]
+                            raw_email = raw_email.decode("ascii", "replace")
+                            message_time, message_mid, msg = email_mime.parse_email(
+                                raw_email,
+                                self.include_headers,
+                                self.maintain_rfc,
+                                self.attach_message_primary,
                             )
-                            self.write_event(logevent)
-                            save_checkpoint(self.checkpoint_dir, message_mid)
-                            mails_retrieved += 1
-                        if self.mailbox_cleanup == 'delete':
-                            mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                            mailclient.expunge()
-                        num += 1
-                mailclient.close()
-                mailclient.logout()
-                self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
+                            if locate_checkpoint(self.checkpoint_dir, message_mid) and (
+                                            self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                                mailclient.expunge()
+                                self.log(EventWriter.DEBUG, "Found a mail that had already been indexed: %s" % message_mid)
+                                # if not locate_checkpoint(...): then message deletion has been delayed until next run
+                            elif not locate_checkpoint(self.checkpoint_dir, message_mid):
+                                logevent = Event(
+                                    stanza=self.username,
+                                    data=msg,
+                                    host=self.mailserver,
+                                    source="{}/{}".format(self.input_name,each_folder),
+                                    time="%.3f" % message_time,
+                                    done=True,
+                                    unbroken=True
+                                )
+                                self.write_event(logevent)
+                                save_checkpoint(self.checkpoint_dir, message_mid)
+                                mails_retrieved += 1
+                            if self.mailbox_cleanup == 'delete':
+                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                                mailclient.expunge()
+                            num += 1
+            self.log(EventWriter.INFO,
+                     "Retrieved %d mails from mailbox: %s/%s" % (mails_retrieved, self.username, each_folder))
+
+        mailclient.close()
+        mailclient.logout()
+
 
     def stream_pop_emails(self):
         """
@@ -389,6 +405,7 @@ class Mail(Script):
         self.username = input_name.split("://")[1]
         self.password = input_item["password"]
         self.protocol = input_item['protocol']
+        self.additional_folders = input_item['additional_folders'].split(',')
         #Optional Parameters
         if 'include_headers' in input_item.keys():
             self.include_headers = bool_variable(input_item['include_headers'])

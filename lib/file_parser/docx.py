@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 
 from .utils import *
 from xml.dom.minidom import parse as parsexml
+from six import text_type, binary_type, BytesIO
+from six import ensure_binary, ensure_str
 import zipfile
 
 
@@ -23,14 +25,14 @@ def parse_docx(part, part_name):
     else:
         decoded_payload = part
         zip_name = part_name
-    fp = StringIO(decoded_payload)
+    fp = BytesIO(decoded_payload)
     try:
         zfp = zipfile.ZipFile(fp)
     except zipfile.BadZipfile:
         return ['#UNSUPPORTED_ATTACHMENT: %s' % zip_name]
     return_doc = []
     if zfp:
-        return_doc.append(parsexml(zfp.open('[Content_Types].xml', 'rU')).documentElement.toprettyxml())
+        return_doc.append(parsexml(zfp.open('[Content_Types].xml', 'r')).documentElement.toprettyxml())
         """
         I can check for Macros here
         if zfp.getinfo('word/vbaData.xml'):
@@ -38,8 +40,8 @@ def parse_docx(part, part_name):
         Add the contents pages to the top of word file for visual inspection of macros
         """
         if zfp.getinfo('word/document.xml'):
-            doc_xml = parsexml(zfp.open('word/document.xml', 'rU'))
-            return_doc.append(''.join([node.firstChild.nodeValue for node in doc_xml.getElementsByTagName('w:t')]))
+            doc_xml = parsexml(zfp.open('word/document.xml', 'r'))
+            return_doc.append(''.join([ensure_str(node.firstChild.nodeValue) for node in doc_xml.getElementsByTagName('w:t')]))
         else:
             return_doc.append('#UNSUPPORTED_DOCX_FILE: file_name = %s' % zip_name)
     else:

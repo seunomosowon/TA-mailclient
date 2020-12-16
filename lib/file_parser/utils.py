@@ -4,7 +4,6 @@ This includes common functions that are required when dealing with mails
 from __future__ import unicode_literals
 
 from email.header import decode_header
-from io import StringIO
 from six import text_type, binary_type
 
 MAIN_HEADERS = ('Date', 'Message-Id', 'Message-ID', 'From', 'To', 'Subject')
@@ -14,7 +13,7 @@ SUPPORTED_CONTENT_TYPES = {'application/xml', 'application/xhtml', 'application/
                            'application/javascript', 'application/bat', 'application/x-bat',
                            'application/x-msdos-program', 'application/textedit',
                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}
-TEXT_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.asm'}
+TEXT_FILE_EXTENSIONS = {'.csv', '.txt', '.md', '.py', '.bat', '.sh', '.rb', '.js', '.asm', '.log'}
 """
 It already indexes all text/* including:
     'text/plain', 'text/html', 'text/x-asm', 'text/x-c','text/x-python-script','text/x-python'
