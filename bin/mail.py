@@ -291,7 +291,7 @@ class Mail(Script):
                                     self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                                 mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
                                 mailclient.expunge()
-                                self.log(EventWriter.DEBUG, "Mail already been indexed: %s" % message_mid)
+                                self.log(EventWriter.DEBUG, "Mail already indexed: %s" % message_mid)
                                 # if not locate_checkpoint(...): then message deletion has been delayed until next run
                             elif not locate_checkpoint(self.checkpoint_dir, message_mid):
                                 logevent = Event(
