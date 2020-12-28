@@ -332,7 +332,6 @@ This app adds a mail:// modular input and supports a variety of parameters in in
 ```
 [mail://email_address@domain.com]
 interval = 600
-is_secure = 1
 mailserver = imap.domain.com
 password = mypassword
 protocol = IMAP|POP3
@@ -357,9 +356,6 @@ indexed.
 IP address for the mail server or client access server with support for retrieving emails via POP3 or IMAP
 
 **protocol** - This must be set to either POP3 or IMAP
-
-**is_secure** - This should be set to 1 if emails should be retrieved using the
-protocol selected over SSL.
 
 **password** - Passwords must be set for every account,
 or the input will get disabled.
