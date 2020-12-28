@@ -265,6 +265,7 @@ class Mail(Script):
         else:
             self.log(EventWriter.INFO, "Accessing mailbox with readonly attribute")
             imap_readonly_flag = IMAP_READONLY_FLAG
+        # if not self.read_inbox: folder_list = [], else: folder_list = ['inbox']
         folder_list = ['inbox']
         folder_list.extend(self.additional_folders)
         for each_folder in folder_list:
@@ -406,6 +407,8 @@ class Mail(Script):
         # Optional Parameters
         if 'additional_folders' in input_item.keys():
             self.additional_folders = input_item['additional_folders'].split(',')
+        else:
+            self.additional_folders = []
         if 'include_headers' in input_item.keys():
             self.include_headers = bool_variable(input_item['include_headers'])
         else:

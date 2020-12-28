@@ -43,7 +43,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.5.1 |
+| App Version | 1.5.2 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -55,8 +55,7 @@ This is built using the Splunk SDK for Python, should work on any Splunk
 installation with Python available including SHC.
 Passwords should also get replicated between search heard peer members.
 
-This only fetches emails form the 'inbox' folder.
-A future upgrade might include support for additional mailbox directories.
+This only fetches emails from the 'inbox' folder when using POP3. Additional mailbox folders can be indexed when using IMAP.
 
 Be sure to set the interval to run this as frequently as required.
 
@@ -89,7 +88,7 @@ Includes:
 
 ##### About this release
 
-Version 1.5.1 of the TA-mailclient is compatible with:
+Version 1.5.2 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
