@@ -43,7 +43,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.5.0 |
+| App Version | 1.5.1 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -89,7 +89,7 @@ Includes:
 
 ##### About this release
 
-Version 1.5.0 of the TA-mailclient is compatible with:
+Version 1.5.1 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
@@ -98,6 +98,7 @@ Version 1.5.0 of the TA-mailclient is compatible with:
 | Lookup file changes | No lookups included in this app |
 
 This version removes support for unencrypted connections to mailboxes to allow the app pass Splunk Certification. 
+The _is_secure_ is no longer required and should be removed from the config.
 
 The administrator is responsible for setting the sourcetype to whatever is desired,
 as well as extracting CIM fields for the sourcetype.
@@ -332,12 +333,12 @@ This app adds a mail:// modular input and supports a variety of parameters in in
 ```
 [mail://email_address@domain.com]
 interval = 600
-is_secure = 1
 mailserver = imap.domain.com
 password = mypassword
 protocol = IMAP|POP3
 disabled = 0
 mailbox_cleanup = delete
+additional_folder = test,rfc,spam
 
 ```
 
@@ -358,9 +359,6 @@ IP address for the mail server or client access server with support for retrievi
 
 **protocol** - This must be set to either POP3 or IMAP
 
-**is_secure** - This should be set to 1 if emails should be retrieved using the
-protocol selected over SSL.
-
 **password** - Passwords must be set for every account,
 or the input will get disabled.
 
@@ -379,6 +377,7 @@ This modular input supports multiple instances, and each input runs at separate 
 
 **include_headers** -  This determines if email headers should be included.
 
+**additional_folders** - This is an optional parameter containing a comma-separated list of additional folders to be indexed if IMAP is configured for the mailbox.
 
 ### Copyright & License
 
