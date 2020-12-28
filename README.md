@@ -375,6 +375,8 @@ This modular input supports multiple instances, and each input runs at separate 
 
 **include_headers** -  This determines if email headers should be included.
 
+**additional_folders** [Optional] - Comma separated list of additional mailbox folders to be fetched.
+Example: `additional_folders = Draft,Sent,Spam` 
 
 ### Copyright & License
 

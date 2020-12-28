@@ -403,7 +403,10 @@ class Mail(Script):
         self.username = input_name.split("://")[1]
         self.password = input_item["password"]
         self.protocol = input_item['protocol']
-        self.additional_folders = input_item['additional_folders'].split(',')
+        if 'additional_folders' in input_item.keys():
+            self.additional_folders = input_item['additional_folders'].split(',')
+        else:
+            self.additional_folders = []
         # Optional Parameters
         if 'include_headers' in input_item.keys():
             self.include_headers = bool_variable(input_item['include_headers'])
