@@ -43,7 +43,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.5.0 |
+| App Version | 1.5.1 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -89,7 +89,7 @@ Includes:
 
 ##### About this release
 
-Version 1.5.0 of the TA-mailclient is compatible with:
+Version 1.5.1 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
@@ -98,6 +98,7 @@ Version 1.5.0 of the TA-mailclient is compatible with:
 | Lookup file changes | No lookups included in this app |
 
 This version removes support for unencrypted connections to mailboxes to allow the app pass Splunk Certification. 
+The _is_secure_ is no longer required and should be removed from the config.
 
 The administrator is responsible for setting the sourcetype to whatever is desired,
 as well as extracting CIM fields for the sourcetype.
