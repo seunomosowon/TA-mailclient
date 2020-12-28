@@ -55,7 +55,7 @@ This is built using the Splunk SDK for Python, should work on any Splunk
 installation with Python available including SHC.
 Passwords should also get replicated between search heard peer members.
 
-This only fetches emails form the 'inbox' folder when using POP3. Additional mailbox folders can be indexed when using IMAP.
+This only fetches emails from the 'inbox' folder when using POP3. Additional mailbox folders can be indexed when using IMAP.
 
 Be sure to set the interval to run this as frequently as required.
 
