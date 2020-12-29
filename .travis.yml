@@ -25,7 +25,7 @@ install:
 - docker exec autobuild_$SPLKMGMT sudo bash -c "echo -e '[mail://pop_to_splunk@$EMAIL_DOMAIN]\npassword=$MB_PASSWD\n
   protocol = $PROTO\ndisabled = 0\nhost = $MAILSERVER\ninclude_headers = 0\ninterval = 30\n
   mailbox_cleanup = readonly\nmailserver = $MAILSERVER\n
-  sourcetype = mail:pop3\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
+  sourcetype = mail:pop3\nadditional_folders=subfolder\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
 - docker exec autobuild_$SPLKMGMT sudo chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
 - echo "`date -u` - Restarting splunk"
 - curl -k -u admin:$RANDOM_PASSWORD https://localhost:$SPLKMGMT/services/server/control/restart
