@@ -405,6 +405,7 @@ class Mail(Script):
         self.password = input_item["password"]
         self.protocol = input_item['protocol']
         # Optional Parameters
+        self.is_secure = 1
         if 'additional_folders' in input_item.keys():
             self.additional_folders = input_item['additional_folders'].split(',')
         else:

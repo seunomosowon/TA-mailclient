@@ -5,6 +5,7 @@ from six import text_type, binary_type
 import hashlib
 import os
 import socket
+import ssl
 
 
 def mail_connectivity_test(server, protocol):
@@ -17,13 +18,17 @@ def mail_connectivity_test(server, protocol):
     :return: Raises an exception back to the modinput validation if connectivity test fails
     """
     try:
-        captive_dns_addr = socket.gethostbyname(server)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(1)
-        s.connect((captive_dns_addr, get_mail_port(protocol=protocol)))
-        s.close()
+        context = ssl.create_default_context()
+        with socket.create_connection((server, get_mail_port(protocol=protocol)), timeout=1) as sock:
+            with context.wrap_socket(sock, server_hostname=server) as ssock:
+                # SSL connection was successful
+                pass
+
+    except ssl.SSLError as e:
+        raise ssl.SSLError("SSL Error : %s" % e)
     except socket.error as e:
         raise socket.error("Socket error : %s" % e)
+
 
 
 def save_checkpoint(checkpoint_dir, msg):
