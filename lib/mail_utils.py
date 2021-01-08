@@ -4,8 +4,8 @@ from six import text_type, binary_type
 
 import hashlib
 import os
-import socket
 import ssl
+import socket
 
 
 def mail_connectivity_test(server, protocol):
@@ -19,16 +19,15 @@ def mail_connectivity_test(server, protocol):
     """
     try:
         context = ssl.create_default_context()
-        with socket.create_connection((server, get_mail_port(protocol=protocol)), timeout=1) as sock:
+        with socket.create_connection((server, get_mail_port(protocol=protocol)), timeout=2) as sock:
             with context.wrap_socket(sock, server_hostname=server) as ssock:
-                # SSL connection was successful
                 pass
-
+                # SSL connection was successful
+                # print ssock.version()
     except ssl.SSLError as e:
         raise ssl.SSLError("SSL Error : %s" % e)
     except socket.error as e:
         raise socket.error("Socket error : %s" % e)
-
 
 
 def save_checkpoint(checkpoint_dir, msg):
