@@ -38,7 +38,9 @@ def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_p
     """
     message = email.message_from_string(email_as_string)
     if attach_message_primary:
-        message = change_primary_message(message)   
+        message_attached = change_primary_message(message)   
+        if message_attached is not None:
+            message = message_attached
     if maintain_rfc:
         index_mail = maintain_rfc_parse(message)
     else:
@@ -114,6 +116,8 @@ def maintain_rfc_parse(message):
     :return: Returns a email message formatted as a string
       :rtype: str
     """
+    if message is None:
+        return "".as_string()
     if not message.is_multipart():
         reformatted_message = quopri.decodestring(
                                 message.as_string().encode('ascii', 'ignore')
