@@ -36,7 +36,7 @@ def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_p
     :return: Returns a list with the [date, Message-id, mail_message]
       :rtype: list
     """
-    message = email.message_from_string(email_as_string)
+    message = email.message_from_string(email_as_string.strip())
     if attach_message_primary:
         message_attached = change_primary_message(message)   
         if message_attached is not None:
@@ -116,8 +116,6 @@ def maintain_rfc_parse(message):
     :return: Returns a email message formatted as a string
       :rtype: str
     """
-    if message is None:
-        return "".as_string()
     if not message.is_multipart():
         reformatted_message = quopri.decodestring(
                                 message.as_string().encode('ascii', 'ignore')
