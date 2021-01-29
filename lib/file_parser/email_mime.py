@@ -1,6 +1,5 @@
 """ Parse emails files """
 from __future__ import unicode_literals
-
 from six import text_type, binary_type
 
 import email
@@ -36,7 +35,9 @@ def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_p
     :return: Returns a list with the [date, Message-id, mail_message]
       :rtype: list
     """
-    message = email.message_from_string(email_as_string)
+    message = email.message_from_string(email_as_string.strip()) or None
+    if message is None:
+        return [None, None, None]
     if attach_message_primary:
         message = change_primary_message(message)   
     if maintain_rfc:
@@ -80,7 +81,7 @@ def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_p
         """mail_for_index = [MESSAGE_PREAMBLE]"""
         mail_for_index = []
         mail_for_index.extend(headers + body)
-        index_mail = "\n".join(s.decode("utf-8") if isinstance(s,  binary_type) else s for s in mail_for_index)
+        index_mail = '\n'.join(s.decode("utf-8") if isinstance(s,  binary_type) else s for s in mail_for_index)
     message_time = float(mktime_tz(parsedate_tz(message['Date'])))
     return [message_time, message['Message-ID'], index_mail]
 

@@ -288,28 +288,31 @@ class Mail(Script):
                                 self.maintain_rfc,
                                 self.attach_message_primary,
                             )
-                            if locate_checkpoint(self.checkpoint_dir, message_mid) and (
-                                    self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
-                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                                mailclient.expunge()
-                                self.log(EventWriter.DEBUG, "Mail already indexed: %s" % message_mid)
-                                # if not locate_checkpoint(...): then message deletion has been delayed until next run
-                            elif not locate_checkpoint(self.checkpoint_dir, message_mid):
-                                logevent = Event(
-                                    stanza=self.username,
-                                    data=msg,
-                                    host=self.mailserver,
-                                    source="{}/{}".format(self.input_name, each_folder),
-                                    time="%.3f" % message_time,
-                                    done=True,
-                                    unbroken=True
-                                )
-                                self.write_event(logevent)
-                                save_checkpoint(self.checkpoint_dir, message_mid)
-                                mails_retrieved += 1
-                            if self.mailbox_cleanup == 'delete':
-                                mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
-                                mailclient.expunge()
+                            if msg is None:
+                                self.log(EventWriter.WARN, "Could not parse mail num {msg_num}".format(msg_num=num))
+                            else:
+                                if locate_checkpoint(self.checkpoint_dir, message_mid) and (
+                                        self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                                    mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                                    mailclient.expunge()
+                                    self.log(EventWriter.DEBUG, "Mail already indexed: %s" % message_mid)
+                                    # if not locate_checkpoint(...): then message deletion has been delayed until next run
+                                elif not locate_checkpoint(self.checkpoint_dir, message_mid):
+                                    logevent = Event(
+                                        stanza=self.username,
+                                        data=msg,
+                                        host=self.mailserver,
+                                        source="{}/{}".format(self.input_name, each_folder),
+                                        time="%.3f" % message_time,
+                                        done=True,
+                                        unbroken=True
+                                    )
+                                    self.write_event(logevent)
+                                    save_checkpoint(self.checkpoint_dir, message_mid)
+                                    mails_retrieved += 1
+                                if self.mailbox_cleanup == 'delete':
+                                    mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
+                                    mailclient.expunge()
                         num += 1
             self.log(EventWriter.INFO,
                      "Retrieved %d mails from mailbox: %s/%s" % (mails_retrieved, self.username, each_folder))
@@ -346,33 +349,36 @@ class Mail(Script):
                 num += 1
                 (header, lines, octets) = mailclient.retr(num)
                 # raw_email = '\n'.join(lines)
-                raw_email = b'\n'.join(lines).decode('utf-8')
+                raw_email = "\n".join(lines).decode('utf-8')
                 message_time, message_mid, msg = email_mime.parse_email(
                     raw_email,
                     self.include_headers,
                     self.maintain_rfc,
                     self.attach_message_primary,
                 )
-                if not locate_checkpoint(self.checkpoint_dir, message_mid):
-                    """index the mail if it is readonly or if the mail will be deleted"""
-                    logevent = Event(
-                        stanza=self.username,
-                        data=msg,
-                        host=self.mailserver,
-                        source=self.input_name,
-                        time="%.3f" % message_time,
-                        done=True,
-                        unbroken=True
-                    )
-                    self.write_event(logevent)
-                    save_checkpoint(self.checkpoint_dir, message_mid)
-                    mails_retrieved += 1
-                    if self.mailbox_cleanup == 'delete':
+                if msg is None:
+                    self.log(EventWriter.WARN, "Could not parse mail num {msg_num}".format(msg_num=num))
+                else:
+                    if not locate_checkpoint(self.checkpoint_dir, message_mid):
+                        """index the mail if it is readonly or if the mail will be deleted"""
+                        logevent = Event(
+                            stanza=self.username,
+                            data=msg,
+                            host=self.mailserver,
+                            source=self.input_name,
+                            time="%.3f" % message_time,
+                            done=True,
+                            unbroken=True
+                        )
+                        self.write_event(logevent)
+                        save_checkpoint(self.checkpoint_dir, message_mid)
+                        mails_retrieved += 1
+                        if self.mailbox_cleanup == 'delete':
+                            mailclient.dele(num)
+                    elif locate_checkpoint(self.checkpoint_dir, message_mid) and (
+                            self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
+                        self.log(EventWriter.DEBUG, "Found a mail that had already been indexed: %s" % message_mid)
                         mailclient.dele(num)
-                elif locate_checkpoint(self.checkpoint_dir, message_mid) and (
-                        self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
-                    self.log(EventWriter.DEBUG, "Found a mail that had already been indexed: %s" % message_mid)
-                    mailclient.dele(num)
             mailclient.quit()
             self.log(EventWriter.INFO, "Retrieved %d mails from mailbox: %s" % (mails_retrieved, self.username))
 
