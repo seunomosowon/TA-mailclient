@@ -349,7 +349,7 @@ class Mail(Script):
                 num += 1
                 (header, lines, octets) = mailclient.retr(num)
                 # raw_email = '\n'.join(lines)
-                raw_email = "\n".join(lines)
+                raw_email = '\n'.join(s.decode("utf-8") if isinstance(s,  binary_type) else s for s in lines)
                 message_time, message_mid, msg = email_mime.parse_email(
                     raw_email,
                     self.include_headers,
