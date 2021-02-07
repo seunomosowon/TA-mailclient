@@ -81,7 +81,7 @@ def parse_email(email_as_string, include_headers, maintain_rfc, attach_message_p
         """mail_for_index = [MESSAGE_PREAMBLE]"""
         mail_for_index = []
         mail_for_index.extend(headers + body)
-        index_mail = '\n'.join(s.decode("utf-8") if isinstance(s,  binary_type) else s for s in mail_for_index)
+        index_mail = '\n'.join(s.decode('utf-8', 'ignore') if isinstance(s,  binary_type) else s for s in mail_for_index)
     message_time = float(mktime_tz(parsedate_tz(message['Date'])))
     return [message_time, message['Message-ID'], index_mail]
 
@@ -118,7 +118,7 @@ def maintain_rfc_parse(message):
     if not message.is_multipart():
         reformatted_message = quopri.decodestring(
                                 message.as_string().encode('ascii', 'ignore')
-                            ).decode("utf-8",'ignore')
+                            ).decode("utf-8", 'ignore')
         return reformatted_message
     boundary = message.get_boundary()
     new_payload = '--' + boundary
@@ -128,7 +128,7 @@ def maintain_rfc_parse(message):
         if extension in TEXT_FILE_EXTENSIONS or content_type in SUPPORTED_CONTENT_TYPES or \
            i.get_content_maintype() == 'text':
             text_content = i.as_string().encode('ascii', 'ignore')
-            text_content = quopri.decodestring(text_content).decode("utf-8",'ignore')
+            text_content = quopri.decodestring(text_content).decode("utf-8", 'ignore')
             new_payload += '\n' + text_content
         else:
             replace = re.sub(r'(?:\n\n)[\s\S]+',r'\n\n#UNSUPPORTED_ATTACHMENT:',i.as_string())
