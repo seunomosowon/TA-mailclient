@@ -28,3 +28,6 @@ attach_message_primary =  <bool>
 
 additional_folders = <value>
 * This suggests additional folders to read messages via IMAP
+
+drop_attachment = <bool>
+* This determines if an email attachment will be indexed
