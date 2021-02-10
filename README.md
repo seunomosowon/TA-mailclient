@@ -378,6 +378,8 @@ This modular input supports multiple instances, and each input runs at separate 
 
 **additional_folders** - This is an optional parameter containing a comma-separated list of additional folders to be indexed if IMAP is configured for the mailbox.
 
+**drop_attachment** -  This is an optional parameter to determine if email attachment should be discarded.
+
 ### Copyright & License
 
 A copy of the Creative Commons Legal code has been added to the add-on detailing its license.
