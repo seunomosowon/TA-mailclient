@@ -4,38 +4,23 @@ orbs:
   python: circleci/python@0.2.1
 
 jobs:
-  prestage: # This is our first job.
-    docker: # it uses the docker executor
-      - image: splunk/splunk:<< matrix.SPLUNK_VERSION >>
-        name: test-<< matrix.PROTO >>-<< matrix.SPLUNK_VERSION >>
-        environment:
-          SPLUNK_PASSWORD: $RANDOM_PASSWORD
-          SPLUNK_START_ARGS: "--accept-license"
-          SPLUNK_USER: "splunk"
-          SPLUNK_PASSWORD: $RANDOM_PASSWORD
-    steps:
-      - run:
-          name: Generate password
-          command: |
-            export SPLUNK_HOME=/opt/splunk
-            export RANDOM_PASSWORD=$(openssl rand -hex 20)
-  build-and-test:
-    executor: python/default
+  appinspect-compliance:
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/TA-mailclient
     steps:
       - checkout
-      - python/load-cache
-      - python/install-deps
-      - python/save-cache
       - run:
           name: Download appinspect
           command: |
-            curl -Ls http://dev.splunk.com/goto/appinspectdownload -o appinspect-lastest.tar.gz
+            cd ~
+            curl -Ls https://download.splunk.com/misc/appinspect/splunk-appinspect-latest.tar.gz -o appinspect-lastest.tar.gz
             mkdir appinspect-latest
             tar -zxvf appinspect-lastest.tar.gz -C appinspect-latest --strip-components=1
       - run:
           name: install appinspect
+          working_directory: ~/appinspect-latest
           command: |
-            cd appinspect-latest
             rm -rf venv
             sudo pip install --upgrade pip setuptools
             sudo pip install virtualenv
@@ -44,30 +29,115 @@ jobs:
             pip install .
       - run:
           name: run appinspect
+          working_directory: ~
           command: |
+            cd ~
             rm -rf TA-mailclient/.git
             rm -rf TA-mailclient/.circleci
             rm -rf TA-mailclient/.gitignore
-            tar -zcvf TA-mailclient.tar.gz TA-mailclient
+            rm -rf TA-mailclient/.travis.yml
+            rm -rf TA-mailclient/.gitattributes
             mkdir dist
-            cp TA-mailclient.tar.gz dist/
+            tar -zcvf dist/TA-mailclient.tar.gz TA-mailclient
             cd appinspect-latest
             source venv/bin/activate
-            splunk-appinspect inspect ../TA-mailclient.tar.gz --included-tags=cloud 
-
+            splunk-appinspect inspect ~/dist/TA-mailclient.tar.gz --included-tags=cloud --included-tags appapproval
+  functional-tests:
+    parameters:
+      MATRIX_IMAGE_VERSION:
+        type: string
+      EMAIL_DOMAIN:
+        type: string
+      MAILSERVER:
+        type: string
+      PROTO:
+        type: string
+      SPLKMGMT:
+        type: integer
+    working_directory: ~
+    docker:
+      - image: circleci/python:3
+    steps:
+      - run:
+          name: Make Directories
+          command: |
+            mkdir TA-mailclient
+      - checkout:
+          path: "~/TA-mailclient"
+      - setup_remote_docker
+      - run:
+          name: Run Splunk Container
+          command: |
+            docker run -d --name autobuild --hostname autobuild -v /opt/splunk/etc/apps -e "SPLUNK_PASSWORD=${SPLUNK_PASSWD}" -e "SPLUNK_START_ARGS=--accept-license" -p "<< parameters.SPLKMGMT >>:8089" -e "SPLUNK_USER=splunk" splunk/splunk:<< parameters.MATRIX_IMAGE_VERSION >>
+      - run:
+          name: Test Splunk Availability
+          command: |
+            sleep 60
+            docker exec autobuild curl -v --retry 10 --retry-connrefused -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/server/info
+      - run:
+          name: Install TA
+          command: |
+            docker ps -a
+            docker cp ~/TA-mailclient autobuild:/opt/splunk/etc/apps/
+            docker exec autobuild sudo mkdir /opt/splunk/etc/apps/TA-mailclient/local/
+            docker exec autobuild sudo bash -c "echo -e '[mail://pop_to_splunk@<< parameters.EMAIL_DOMAIN >>]\n
+              password=${MB_PASSWD}\n
+              protocol = << parameters.PROTO >>\n
+              disabled = 0\n
+              host = << parameters.MAILSERVER >>\n
+              include_headers = 0\n
+              interval = 30\n
+              mailbox_cleanup = readonly\n
+              mailserver = << parameters.MAILSERVER >>\n
+              sourcetype = mail:pop3\n
+              additional_folders=subfolder\n' > /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf"
+            docker exec autobuild sudo chown -R splunk.splunk /opt/splunk/etc/apps/TA-mailclient/
+      - run:
+          name: Restart Splunk
+          command: |
+            docker exec autobuild curl -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/server/control/restart -X POST &>/dev/null
+            sleep 15
+      - run:
+          name: Test Splunk App Configuration
+          command: |
+            for i in `seq 0 5 100`;
+            do if docker exec autobuild curl --retry 10 --retry-connrefused --fail -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/server/info &> /dev/null ;
+              then break; else echo "`date -u` - Waited $i seconds for container to start" ; sleep 5 ; fi;
+              if [ 100 -eq "$i" ]; then exit -1 ; fi ;
+            done
+            echo "`date -u` - Checking if TA was installed successfully and enabled"
+            docker exec autobuild curl -s --fail -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/apps/local/TA-mailclient | grep "\"disabled\">0"
+            echo "`date -u` - Checking if modular input is not broken"
+            docker exec autobuild curl --fail -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/data/modular-inputs/mail &>/dev/null
+            echo "`date -u` - Checking if test modular input is not disabled"
+            docker exec autobuild curl -s --fail -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/servicesNS/nobody/TA-mailclient/data/inputs/mail/pop_to_splunk@<< parameters.EMAIL_DOMAIN >> | grep "\"disabled\">0"
+      - run:
+          name: Test Mail Retrieval
+          command: |
+            echo "`date -u` - Wait for mail retrieval"
+            sleep 45
+            echo "`date -u` - Check if password encryption is working"
+            docker exec autobuild sudo grep -B1 encrypted /opt/splunk/etc/apps/TA-mailclient/local/inputs.conf
+            docker exec autobuild curl --retry 10 --retry-connrefused -s --get -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/search/jobs/export --data-urlencode search="search index=main sourcetype=mail* | table _time sourcetype source from_name sender recipient message_id file_name" -d output_mode=csv -d earliest="-365d" -d latest=now
+      - run:
+          name: Check Internal Metrics
+          command: |
+            docker exec autobuild curl --get -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/search/jobs/export --data-urlencode search="search index=_internal sourcetype=splunkd (component=ModularInputs OR component=ExecProcessor) mail.py | head 20 | table _time _raw" -d output_mode=csv -d earliest="-1h" -d latest=now
 workflows:
-  main:
+  all-together:
     jobs:
-      - build-and-test
-      - prestage
-        matrix:
-          parameters:
-            SPLUNK_VERSION: [ latest, 7.3, 7.2 ]
-            MAILSERVER: [ pop.aol.com,imap.aol.com ]
-            PROTO: [ POP3, IMAP ]
-            EMAIL_DOMAIN: aol.com
-          exclude:
-            - PROTO: POP3
-              MAILSERVER: imap.aol.com
-            - PROTO: IMAP
-              MAILSERVER: pop.aol.com
+      - appinspect-compliance
+      - functional-tests:
+          name: test-<< matrix.PROTO >>-<< matrix.MAILSERVER >>-v<< matrix.MATRIX_IMAGE_VERSION >>
+          matrix:
+            parameters:
+              MATRIX_IMAGE_VERSION: [latest]
+              MAILSERVER: [pop.aol.com,imap.aol.com]
+              PROTO: [POP3,IMAP]
+              EMAIL_DOMAIN: [aol.com]
+              SPLKMGMT: [ 8089 ]
+            exclude:
+              - PROTO: POP3
+                MAILSERVER: imap.aol.com
+              - PROTO: IMAP
+                MAILSERVER: pop.aol.com
