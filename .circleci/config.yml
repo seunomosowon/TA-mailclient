@@ -1,0 +1,73 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  prestage: # This is our first job.
+    docker: # it uses the docker executor
+      - image: splunk/splunk:<< matrix.SPLUNK_VERSION >>
+        name: test-<< matrix.PROTO >>-<< matrix.SPLUNK_VERSION >>
+        environment:
+          SPLUNK_PASSWORD: $RANDOM_PASSWORD
+          SPLUNK_START_ARGS: "--accept-license"
+          SPLUNK_USER: "splunk"
+          SPLUNK_PASSWORD: $RANDOM_PASSWORD
+    steps:
+      - run:
+          name: Generate password
+          command: |
+            export SPLUNK_HOME=/opt/splunk
+            export RANDOM_PASSWORD=$(openssl rand -hex 20)
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-deps
+      - python/save-cache
+      - run:
+          name: Download appinspect
+          command: |
+            curl -Ls http://dev.splunk.com/goto/appinspectdownload -o appinspect-lastest.tar.gz
+            mkdir appinspect-latest
+            tar -zxvf appinspect-lastest.tar.gz -C appinspect-latest --strip-components=1
+      - run:
+          name: install appinspect
+          command: |
+            cd appinspect-latest
+            rm -rf venv
+            sudo pip install --upgrade pip setuptools
+            sudo pip install virtualenv
+            virtualenv --clear venv
+            source venv/bin/activate
+            pip install .
+      - run:
+          name: run appinspect
+          command: |
+            rm -rf TA-mailclient/.git
+            rm -rf TA-mailclient/.circleci
+            rm -rf TA-mailclient/.gitignore
+            tar -zcvf TA-mailclient.tar.gz TA-mailclient
+            mkdir dist
+            cp TA-mailclient.tar.gz dist/
+            cd appinspect-latest
+            source venv/bin/activate
+            splunk-appinspect inspect ../TA-mailclient.tar.gz --included-tags=cloud 
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
+      - prestage
+        matrix:
+          parameters:
+            SPLUNK_VERSION: [ latest, 7.3, 7.2 ]
+            MAILSERVER: [ pop.aol.com,imap.aol.com ]
+            PROTO: [ POP3, IMAP ]
+            EMAIL_DOMAIN: aol.com
+          exclude:
+            - PROTO: POP3
+              MAILSERVER: imap.aol.com
+            - PROTO: IMAP
+              MAILSERVER: pop.aol.com
