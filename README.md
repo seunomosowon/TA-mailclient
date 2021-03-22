@@ -139,7 +139,8 @@ Current contributors are listed in AUTHORS.md.
 ##### Older Releases
 * v1.6.0
     * Includes support for dropping attachments
-    * Migrated to CircleCI
+    * Migrated CICD to CircleCI
+    * Added appinspect testing to CI/CD pipeline
 * v1.5.5
     * Updated Improved support for Python3
     * Improved coding style to match new Splunk standards
