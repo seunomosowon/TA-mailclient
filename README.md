@@ -1,6 +1,4 @@
 
-[![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Seun/donate)
-
 ## Table of Contents
 
 ### OVERVIEW
@@ -246,13 +244,6 @@ Future release will support
 **Note** : This has not been tested against an exhaustive list of mail servers, so I'll welcome the feedback.
 
 Also, feel free to send me a list of well known servers that you 're using this with without problems.
-
-**Donations**
-
-I have received a few requests on how to make donations, and have now added this section.
-You can contact me for one-time paypal donations to my email or us Liberapay and stop it after one payment. 
-
-[![Donate on Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Seun/donate)
 
 Rate the add-on on [Splunkbase](https://splunkbase.splunk.com/app/3200/) if you use it and are happy with it, 
 and share your feedback. Thanks!
