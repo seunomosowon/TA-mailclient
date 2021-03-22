@@ -41,7 +41,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.5.5 |
+| App Version | 1.6.0 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -86,7 +86,7 @@ Includes:
 
 ##### About this release
 
-Version 1.5.5 of the TA-mailclient is compatible with:
+Version 1.6.0 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
@@ -137,6 +137,13 @@ Current contributors are listed in AUTHORS.md.
 
 
 ##### Older Releases
+* v1.6.0
+    * Includes support for dropping attachments
+    * Migrated to CircleCI
+* v1.5.5
+    * Updated Improved support for Python3
+    * Improved coding style to match new Splunk standards
+    * Fixed bugs related to indexing zip and docx as a result of Python 2-3 compatibility
 * v1.4.0
     * Included support for Splunk v8.0
 * v1.3.5
