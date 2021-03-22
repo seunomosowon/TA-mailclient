@@ -73,7 +73,7 @@ jobs:
           name: Test Splunk Availability
           command: |
             sleep 60
-            docker exec autobuild curl -v --retry 10 --retry-connrefused -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/server/info
+            docker exec autobuild curl -s -o /dev/null -w "%{http_code}" --retry 10 --retry-connrefused -k -u admin:${SPLUNK_PASSWD} https://autobuild:<< parameters.SPLKMGMT >>/services/server/info
       - run:
           name: Install TA
           command: |
