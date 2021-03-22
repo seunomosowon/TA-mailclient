@@ -131,10 +131,10 @@ workflows:
           name: test-<< matrix.PROTO >>-<< matrix.MAILSERVER >>-v<< matrix.MATRIX_IMAGE_VERSION >>
           matrix:
             parameters:
-              MATRIX_IMAGE_VERSION: [latest]
-              MAILSERVER: [pop.aol.com,imap.aol.com]
-              PROTO: [POP3,IMAP]
-              EMAIL_DOMAIN: [aol.com]
+              MATRIX_IMAGE_VERSION: [ latest, "7.3", "7.2" ]
+              MAILSERVER: [ pop.aol.com, imap.aol.com ]
+              PROTO: [ POP3, IMAP ]
+              EMAIL_DOMAIN: [ aol.com ]
               SPLKMGMT: [ 8089 ]
             exclude:
               - PROTO: POP3
