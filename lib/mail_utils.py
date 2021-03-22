@@ -5,6 +5,7 @@ from six import text_type, binary_type
 import hashlib
 import os
 import socket
+import re
 
 
 def mail_connectivity_test(server, protocol):
@@ -94,3 +95,15 @@ def get_mail_port(protocol):
     else:
         raise Exception("Invalid options passed to get_mail_port")
     return port
+
+def drop_attachment_from_event(message):
+    """
+    This prevent the attachment content to be ingested in clear text by
+    dropping its content. If attachment is unsupported, nothing done.
+    :param message: Email message to be ingested as event in Splunk
+    :type message: basestring
+    :return: Return the email message with no attachment content
+    :rtype: basestring
+    """
+    pattern = r'^#BEGIN_ATTACHMENT:\s(.*)#END_ATTACHMENT:\s'
+    return re.sub(pattern, "", message, flags=re.DOTALL|re.MULTILINE)

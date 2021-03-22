@@ -131,6 +131,15 @@ class Mail(Script):
             required_on_create=False
         )
         scheme.add_argument(additional_folders)
+        drop_attachment = Argument(
+            name="drop_attachment",
+            title="Drop attachment content",
+            validation="is_bool('drop_attachment')",
+            data_type=Argument.data_type_boolean,
+            required_on_edit=False,
+            required_on_create=False
+        )
+        scheme.add_argument(drop_attachment)
         return scheme
 
     # noinspection PyShadowingNames
@@ -291,6 +300,8 @@ class Mail(Script):
                             if msg is None:
                                 self.log(EventWriter.WARN, "Could not parse mail num {msg_num}".format(msg_num=num))
                             else:
+                                if self.drop_attachment:
+                                    msg = drop_attachment_from_event(msg)
                                 if locate_checkpoint(self.checkpoint_dir, message_mid) and (
                                         self.mailbox_cleanup == 'delayed' or self.mailbox_cleanup == 'delete'):
                                     mailclient.uid('store', email_ids[num], '+FLAGS', '(\\Deleted)')
@@ -431,6 +442,10 @@ class Mail(Script):
             self.mailbox_cleanup = input_item['mailbox_cleanup']
         else:
             self.mailbox_cleanup = DEFAULT_MAILBOX_CLEANUP
+        if 'drop_attachment' in input_item.keys():
+            self.drop_attachment = bool_variable(input_item['drop_attachment'])
+        else:
+            self.drop_attachment = DEFAULT_DROP_ATTACHMENT
         self.checkpoint_dir = inputs.metadata['checkpoint_dir']
         match = re.match(REGEX_EMAIL, self.username)
         if not match:
