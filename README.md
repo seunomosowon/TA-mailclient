@@ -1,6 +1,4 @@
 
-[![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Seun/donate)
-
 ## Table of Contents
 
 ### OVERVIEW
@@ -43,7 +41,7 @@
 
 | Author | Oluwaseun Remi-Omosowon |
 | --- | --- |
-| App Version | 1.5.5 |
+| App Version | 1.6.0 |
 | Vendor Products | <ul><li>poplib</li><li>imaplib</li><li>SDK for Python 1.6.14</li></ul> |
 
 The TA-mailclient add-on fetches emails for Splunk to index from mailboxes
@@ -88,7 +86,7 @@ Includes:
 
 ##### About this release
 
-Version 1.5.5 of the TA-mailclient is compatible with:
+Version 1.6.0 of the TA-mailclient is compatible with:
 
 | Splunk Enterprise versions | 8.x, 7.x |
 | --- | --- |
@@ -139,6 +137,14 @@ Current contributors are listed in AUTHORS.md.
 
 
 ##### Older Releases
+* v1.6.0
+    * Includes support for dropping attachments
+    * Migrated CICD to CircleCI
+    * Added appinspect testing to CI/CD pipeline
+* v1.5.5
+    * Updated Improved support for Python3
+    * Improved coding style to match new Splunk standards
+    * Fixed bugs related to indexing zip and docx as a result of Python 2-3 compatibility
 * v1.4.0
     * Included support for Splunk v8.0
 * v1.3.5
@@ -246,13 +252,6 @@ Future release will support
 **Note** : This has not been tested against an exhaustive list of mail servers, so I'll welcome the feedback.
 
 Also, feel free to send me a list of well known servers that you 're using this with without problems.
-
-**Donations**
-
-I have received a few requests on how to make donations, and have now added this section.
-You can contact me for one-time paypal donations to my email or us Liberapay and stop it after one payment. 
-
-[![Donate on Liberapay](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Seun/donate)
 
 Rate the add-on on [Splunkbase](https://splunkbase.splunk.com/app/3200/) if you use it and are happy with it, 
 and share your feedback. Thanks!
@@ -377,6 +376,8 @@ This modular input supports multiple instances, and each input runs at separate 
 **include_headers** -  This determines if email headers should be included.
 
 **additional_folders** - This is an optional parameter containing a comma-separated list of additional folders to be indexed if IMAP is configured for the mailbox.
+
+**drop_attachment** -  This is an optional parameter to determine if email attachment should be discarded.
 
 ### Copyright & License
 
